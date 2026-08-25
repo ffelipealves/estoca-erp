@@ -1,0 +1,30 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: estoca
+      POSTGRES_PASSWORD: estoca
+      POSTGRES_DB: estoca
+    ports: ["5433:5432"]
+    volumes: ["pg_data:/var/lib/postgresql/data"]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U estoca"]
+      interval: 5s
+      retries: 5
+
+  backend:
+    build: ./backend
+    environment:
+      DATABASE_URL: postgresql+asyncpg://estoca:estoca@postgres:5432/estoca
+      SESSION_COOKIE_SECURE: "false"
+      SESSION_COOKIE_SAMESITE: "lax"
+      CORS_ORIGINS: "http://localhost:3000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    ports: ["8000:8000"]
+    volumes: ["./backend:/app"]
+    command: uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
+
+volumes:
+  pg_data:

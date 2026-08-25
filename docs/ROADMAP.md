@@ -4,7 +4,7 @@ Cronograma de 14 dias, part-time, a partir de 2026-08-25. Cada dia deste roadmap
 
 ## Status atual
 
-**Dia 1 — em andamento.** Feito: esqueleto de pastas do monorepo (`backend/app/{core,models,schemas,repositories,services,routers}`, `backend/{alembic/versions,tests/{unit,integration}}`, `frontend/src/{app,components,context,lib}`, `.github/workflows`), `AGENTS.md`/`CLAUDE.md`/`docs/` criados. Falta: `git init`, `.gitignore`, `README.md`, primeiro commit, `docker-compose.yml`, Dockerfile do backend, FastAPI "hello world", repo no GitHub.
+**Dia 1 — concluído.** Esqueleto de pastas, `AGENTS.md`/`CLAUDE.md`/`docs/`, `git init` (branch `main`), `.gitignore`, `README.md` mínimo, repo no GitHub (`ffelipealves/estoca-erp`) com push. `docker-compose.yml` (postgres na porta host 5433 — 5432 já ocupada por um Postgres nativo da máquina; a conexão interna do backend continua em `postgres:5432`), Dockerfile do backend, FastAPI "hello world" com `/healthz` — testado local com `docker compose up`, `curl localhost:8000/healthz` responde 200.
 
 ## Dias
 
