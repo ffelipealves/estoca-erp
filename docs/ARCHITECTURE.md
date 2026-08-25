@@ -21,6 +21,63 @@ Next.js App Router. `app/` só páginas e composição; lógica de fetch/estado 
 
 Toda tabela de negócio tem `session_id` (FK → `sessions.id`, `ON DELETE CASCADE`, indexada). PKs `uuid`, timestamps `timestamptz`.
 
+```mermaid
+erDiagram
+    SESSIONS ||--o{ DEMO_USERS : isola
+    SESSIONS ||--o{ CATEGORIES : isola
+    SESSIONS ||--o{ PRODUCTS : isola
+    SESSIONS ||--o{ STOCK_MOVEMENTS : isola
+    CATEGORIES ||--o{ PRODUCTS : classifica
+    PRODUCTS ||--o{ STOCK_MOVEMENTS : movimenta
+    DEMO_USERS |o--o{ STOCK_MOVEMENTS : registra
+
+    SESSIONS {
+        uuid id PK
+        timestamptz created_at
+        timestamptz last_activity_at
+    }
+    DEMO_USERS {
+        uuid id PK
+        uuid session_id FK
+        varchar email
+        varchar password_hash
+        enum role
+        varchar full_name
+    }
+    CATEGORIES {
+        uuid id PK
+        uuid session_id FK
+        varchar name
+        timestamptz created_at
+        timestamptz updated_at
+    }
+    PRODUCTS {
+        uuid id PK
+        uuid session_id FK
+        uuid category_id FK
+        varchar name
+        varchar sku
+        numeric price
+        int quantity
+        int low_stock_threshold
+        timestamptz created_at
+        timestamptz updated_at
+    }
+    STOCK_MOVEMENTS {
+        uuid id PK
+        uuid session_id FK
+        uuid product_id FK
+        uuid performed_by_user_id FK
+        enum type
+        int quantity
+        int resulting_quantity
+        varchar note
+        timestamptz created_at
+    }
+```
+
+Toda FK para `sessions.id` é `CASCADE`. `products.category_id` é `RESTRICT` (bloqueia exclusão de categoria com produto vinculado). `stock_movements.performed_by_user_id` é `SET NULL`.
+
 - **`sessions`**: `id`, `created_at`, `last_activity_at` (índices nos dois — usados pela query de limpeza).
 - **`demo_users`**: `id`, `session_id`, `email`, `password_hash`, `role` (`admin`/`operador`), `full_name`. `UNIQUE(session_id, email)`.
 - **`categories`**: `id`, `session_id`, `name`, `created_at`, `updated_at`. `UNIQUE(session_id, name)`.
