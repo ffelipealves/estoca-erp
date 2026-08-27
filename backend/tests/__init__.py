@@ -1,0 +1,1 @@
+"""Suíte automatizada do backend."""
