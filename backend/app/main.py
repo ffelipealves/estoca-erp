@@ -1,6 +1,10 @@
 from fastapi import FastAPI
 
-app = FastAPI(title="Estoca")
+from app.core.config import settings
+from app.core.errors import DomainError, domain_error_handler
+
+app = FastAPI(title=settings.app_name)
+app.add_exception_handler(DomainError, domain_error_handler)
 
 
 @app.get("/healthz")
