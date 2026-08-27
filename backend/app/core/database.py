@@ -22,6 +22,7 @@ async def get_db() -> AsyncIterator[AsyncSession]:
     async with async_session_factory() as db:
         try:
             yield db
+            await db.commit()
         except Exception:
             await db.rollback()
             raise

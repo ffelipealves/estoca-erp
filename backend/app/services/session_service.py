@@ -40,6 +40,27 @@ class SessionService:
         session = await self.repository.create(resolved_at)
         return SessionResolution(session=session, created=True)
 
+    async def resolve_existing(
+        self,
+        session_id: UUID | None,
+        *,
+        now: datetime | None = None,
+    ) -> Session | None:
+        if session_id is None:
+            return None
+
+        resolved_at = now or datetime.now(UTC)
+        session = await self.repository.get_by_id(session_id)
+        if session is None or self.is_expired(session, resolved_at):
+            return None
+
+        return await self.repository.touch(session, resolved_at)
+
+    def expires_at(self, session: Session) -> datetime:
+        inactivity_expiration = session.last_activity_at + self.inactivity_limit
+        age_expiration = session.created_at + self.max_age
+        return min(inactivity_expiration, age_expiration)
+
     def is_expired(self, session: Session, now: datetime) -> bool:
         inactive_for = now - session.last_activity_at
         age = now - session.created_at
