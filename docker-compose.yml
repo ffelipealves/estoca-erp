@@ -6,16 +6,21 @@ services:
       POSTGRES_PASSWORD: estoca
       POSTGRES_DB: estoca
     ports: ["5433:5432"]
-    volumes: ["pg_data:/var/lib/postgresql/data"]
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+      - ./backend/docker/init-test-db.sql:/docker-entrypoint-initdb.d/10-init-test-db.sql:ro
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U estoca"]
       interval: 5s
       retries: 5
 
   backend:
-    build: ./backend
+    build:
+      context: ./backend
+      target: development
     environment:
       DATABASE_URL: postgresql+asyncpg://estoca:estoca@postgres:5432/estoca
+      TEST_DATABASE_URL: postgresql+asyncpg://estoca:estoca@postgres:5432/estoca_test
       SESSION_COOKIE_SECURE: "false"
       SESSION_COOKIE_SAMESITE: "lax"
       CORS_ORIGINS: "http://localhost:3000"

@@ -4,7 +4,7 @@ Cronograma de 14 dias, part-time, a partir de 2026-08-25. Cada dia deste roadmap
 
 ## Status atual
 
-**Dias 1 e 2 — concluídos.** Esqueleto de pastas, documentação inicial, repositório no GitHub, Docker Compose e FastAPI com `/healthz`. Models SQLAlchemy completos para sessões, usuários demo, categorias, produtos e movimentações, com isolamento estrutural por `session_id`, enums nativos e regras de exclusão nas FKs. Alembic assíncrono configurado com a migration única `0001_initial_schema`; ciclos de upgrade/downgrade e schema final conferidos no PostgreSQL local.
+**Dias 1 a 3 — concluídos.** Base FastAPI/PostgreSQL em Docker, models SQLAlchemy completos e migration única `0001_initial_schema`. Configuração tipada por ambiente, SQLAlchemy assíncrono, bcrypt, JWT e hierarquia global de erros implementados. Pytest e HTTPX rodam em um target Docker de desenvolvimento contra o banco PostgreSQL real e isolado `estoca_test`, com migrations automáticas antes da suíte.
 
 ## Dias
 
