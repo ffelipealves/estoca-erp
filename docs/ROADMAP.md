@@ -4,7 +4,7 @@ Cronograma de 14 dias, part-time, a partir de 2026-08-25. Cada dia deste roadmap
 
 ## Status atual
 
-**Dia 1 — concluído.** Esqueleto de pastas, `AGENTS.md`/`CLAUDE.md`/`docs/`, `git init` (branch `main`), `.gitignore`, `README.md` mínimo, repo no GitHub (`ffelipealves/estoca-erp`) com push. `docker-compose.yml` (postgres na porta host 5433 — 5432 já ocupada por um Postgres nativo da máquina; a conexão interna do backend continua em `postgres:5432`), Dockerfile do backend, FastAPI "hello world" com `/healthz` — testado local com `docker compose up`, `curl localhost:8000/healthz` responde 200.
+**Dias 1 e 2 — concluídos.** Esqueleto de pastas, documentação inicial, repositório no GitHub, Docker Compose e FastAPI com `/healthz`. Models SQLAlchemy completos para sessões, usuários demo, categorias, produtos e movimentações, com isolamento estrutural por `session_id`, enums nativos e regras de exclusão nas FKs. Alembic assíncrono configurado com a migration única `0001_initial_schema`; ciclos de upgrade/downgrade e schema final conferidos no PostgreSQL local.
 
 ## Dias
 
