@@ -21,6 +21,7 @@ def test_hash_and_verify_password() -> None:
     assert verify_password(password, hashed_password)
     assert not verify_password("senha-incorreta", hashed_password)
     assert not verify_password(password, "hash-invalido")
+    assert not verify_password("x" * 73, hashed_password)
 
 
 def test_access_token_round_trip() -> None:

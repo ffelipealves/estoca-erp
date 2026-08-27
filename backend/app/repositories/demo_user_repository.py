@@ -19,6 +19,15 @@ class DemoUserRepository:
         )
         return count or 0
 
+    async def get_by_email(self, session_id: UUID, email: str) -> DemoUser | None:
+        result = await self.db.execute(
+            select(DemoUser).where(
+                DemoUser.session_id == session_id,
+                DemoUser.email == email.strip().lower(),
+            )
+        )
+        return result.scalar_one_or_none()
+
     async def list_by_session(self, session_id: UUID) -> list[DemoUser]:
         result = await self.db.scalars(
             select(DemoUser)

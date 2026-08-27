@@ -31,7 +31,7 @@ def hash_password(password: str) -> str:
 def verify_password(password: str, password_hash_value: str) -> bool:
     try:
         return password_hash.verify(password, password_hash_value)
-    except UnknownHashError:
+    except (UnknownHashError, ValueError):
         return False
 
 
