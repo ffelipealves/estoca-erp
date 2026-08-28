@@ -34,6 +34,32 @@ class StockMovementRepository:
         )
         return list(result)
 
+    async def list_paginated(
+        self,
+        session_id: UUID,
+        *,
+        offset: int,
+        limit: int,
+        product_id: UUID | None = None,
+    ) -> tuple[list[StockMovement], int]:
+        filters = [StockMovement.session_id == session_id]
+        if product_id is not None:
+            filters.append(StockMovement.product_id == product_id)
+
+        total = await self.db.scalar(
+            select(func.count())
+            .select_from(StockMovement)
+            .where(*filters)
+        )
+        result = await self.db.scalars(
+            select(StockMovement)
+            .where(*filters)
+            .order_by(StockMovement.created_at.desc(), StockMovement.id.desc())
+            .offset(offset)
+            .limit(limit)
+        )
+        return list(result), total or 0
+
     async def create(self, movement: StockMovement) -> StockMovement:
         self.db.add(movement)
         await self.db.flush()

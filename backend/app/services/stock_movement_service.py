@@ -1,3 +1,5 @@
+from dataclasses import dataclass
+from math import ceil
 from uuid import UUID
 
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -14,11 +16,44 @@ from app.repositories.stock_movement_repository import StockMovementRepository
 MAX_MOVEMENTS_PER_SESSION = 500
 
 
+@dataclass(frozen=True, slots=True)
+class StockMovementPageResult:
+    items: list[StockMovement]
+    page: int
+    page_size: int
+    total: int
+
+    @property
+    def pages(self) -> int:
+        return ceil(self.total / self.page_size)
+
+
 class StockMovementService:
     def __init__(self, db: AsyncSession) -> None:
         self.products = ProductRepository(db)
         self.movements = StockMovementRepository(db)
         self.sessions = SessionRepository(db)
+
+    async def list(
+        self,
+        session_id: UUID,
+        *,
+        page: int,
+        page_size: int,
+        product_id: UUID | None = None,
+    ) -> StockMovementPageResult:
+        items, total = await self.movements.list_paginated(
+            session_id,
+            offset=(page - 1) * page_size,
+            limit=page_size,
+            product_id=product_id,
+        )
+        return StockMovementPageResult(
+            items=items,
+            page=page,
+            page_size=page_size,
+            total=total,
+        )
 
     async def ensure_capacity(self, session_id: UUID) -> None:
         session = await self.sessions.get_by_id_for_update(session_id)
