@@ -1,7 +1,7 @@
 from collections.abc import Sequence
 from uuid import UUID
 
-from sqlalchemy import func, select
+from sqlalchemy import delete, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.category import Category
@@ -31,3 +31,8 @@ class CategoryRepository:
         self.db.add_all(categories)
         await self.db.flush()
         return list(categories)
+
+    async def delete_by_session(self, session_id: UUID) -> None:
+        await self.db.execute(
+            delete(Category).where(Category.session_id == session_id)
+        )

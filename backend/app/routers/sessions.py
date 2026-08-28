@@ -3,9 +3,14 @@ from datetime import UTC, datetime
 from fastapi import APIRouter, Response, status
 
 from app.core.config import settings
-from app.core.deps import CurrentSession, DbSession, SessionId
-from app.schemas.session import SessionBootstrapResponse, SessionInfoResponse
+from app.core.deps import AdminUser, CurrentSession, DbSession, SessionId
+from app.schemas.session import (
+    SessionBootstrapResponse,
+    SessionInfoResponse,
+    SessionResetResponse,
+)
 from app.services.seed_service import SeedService
+from app.services.session_reset_service import SessionResetService
 from app.services.session_service import SessionService
 
 
@@ -58,4 +63,18 @@ async def get_session_info(
         last_activity_at=current_session.last_activity_at,
         expires_at=expires_at,
         ttl_seconds=ttl_seconds,
+    )
+
+
+@router.post("/me/reset", response_model=SessionResetResponse)
+async def reset_current_session(
+    current_session: CurrentSession,
+    _admin_user: AdminUser,
+    db: DbSession,
+) -> SessionResetResponse:
+    result = await SessionResetService(db).reset(current_session.id)
+    return SessionResetResponse(
+        session_id=current_session.id,
+        categories_seeded=result.categories_seeded,
+        products_seeded=result.products_seeded,
     )

@@ -1,7 +1,7 @@
 from collections.abc import Sequence
 from uuid import UUID
 
-from sqlalchemy import func, select
+from sqlalchemy import delete, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.product import Product
@@ -31,3 +31,8 @@ class ProductRepository:
         self.db.add_all(products)
         await self.db.flush()
         return list(products)
+
+    async def delete_by_session(self, session_id: UUID) -> None:
+        await self.db.execute(
+            delete(Product).where(Product.session_id == session_id)
+        )
