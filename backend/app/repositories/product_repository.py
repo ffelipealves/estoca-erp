@@ -1,7 +1,7 @@
 from collections.abc import Sequence
 from uuid import UUID
 
-from sqlalchemy import delete, func, select
+from sqlalchemy import delete, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.product import Product
@@ -34,13 +34,49 @@ class ProductRepository:
         )
         return count or 0
 
-    async def list_by_session(self, session_id: UUID) -> list[Product]:
-        result = await self.db.scalars(
-            select(Product)
-            .where(Product.session_id == session_id)
-            .order_by(Product.sku)
-        )
+    async def list_by_session(
+        self,
+        session_id: UUID,
+        *,
+        category_id: UUID | None = None,
+        search: str | None = None,
+        low_stock: bool | None = None,
+    ) -> list[Product]:
+        statement = select(Product).where(Product.session_id == session_id)
+
+        if category_id is not None:
+            statement = statement.where(Product.category_id == category_id)
+        if search:
+            statement = statement.where(
+                or_(
+                    Product.name.icontains(search, autoescape=True),
+                    Product.sku.icontains(search, autoescape=True),
+                )
+            )
+        if low_stock is True:
+            statement = statement.where(
+                Product.quantity <= Product.low_stock_threshold
+            )
+        elif low_stock is False:
+            statement = statement.where(
+                Product.quantity > Product.low_stock_threshold
+            )
+
+        result = await self.db.scalars(statement.order_by(Product.sku))
         return list(result)
+
+    async def get_by_id(
+        self,
+        session_id: UUID,
+        product_id: UUID,
+    ) -> Product | None:
+        result = await self.db.execute(
+            select(Product).where(
+                Product.session_id == session_id,
+                Product.id == product_id,
+            )
+        )
+        return result.scalar_one_or_none()
 
     async def create_many(self, products: Sequence[Product]) -> list[Product]:
         self.db.add_all(products)
