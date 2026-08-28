@@ -6,6 +6,17 @@ Mini ERP de estoque de portfólio. Cada visitante recebe uma sessão isolada (sa
 
 🚧 Em desenvolvimento — ver [`docs/ROADMAP.md`](docs/ROADMAP.md) para o cronograma e [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) para o design técnico.
 
+## Produção
+
+O backend está publicado no Render e usa PostgreSQL no Neon:
+
+- API: https://estoca-api.onrender.com
+- Health check: https://estoca-api.onrender.com/healthz
+- OpenAPI: https://estoca-api.onrender.com/docs
+
+O serviço usa o plano gratuito do Render e pode levar cerca de 50 segundos para
+responder à primeira requisição depois de um período sem tráfego.
+
 ## Desenvolvimento local
 
 Com Docker e Docker Compose instalados, suba o backend e os bancos de desenvolvimento e teste:

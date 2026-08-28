@@ -4,9 +4,19 @@ O ambiente gratuito de produção usa Neon para PostgreSQL e Render para a API.
 O frontend será publicado na Vercel quando existir. Nenhum dos passos abaixo
 exige cartão de crédito.
 
+## Ambiente atual
+
+- API: `https://estoca-api.onrender.com`
+- Health check: `https://estoca-api.onrender.com/healthz`
+- Banco: projeto `estoca-erp`, branch `production`, banco `neondb` no Neon
+- Deploy: Blueprint `estoca-erp`, serviço Docker Free `estoca-api` no Render
+
+O primeiro deploy e o fluxo bootstrap → sessão → login → catálogo foram
+validados em produção.
+
 ## 1. Banco no Neon
 
-1. Crie um projeto gratuito chamado `estoca`.
+1. Crie um projeto gratuito chamado `estoca-erp`.
 2. Mantenha o banco e a branch criados por padrão.
 3. Em **Connect**, selecione a conexão com pool e copie a connection string.
 
