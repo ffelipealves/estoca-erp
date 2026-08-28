@@ -2,8 +2,9 @@ from __future__ import annotations
 
 from functools import lru_cache
 from typing import Literal
+from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
 
-from pydantic import PositiveInt, SecretStr, model_validator
+from pydantic import PositiveInt, SecretStr, field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -31,6 +32,32 @@ class Settings(BaseSettings):
     jwt_expiration_minutes: PositiveInt = 120
 
     cron_secret: SecretStr = SecretStr("development-only-cron-secret-change-me")
+
+    @field_validator("database_url", mode="before")
+    @classmethod
+    def normalize_database_url(cls, value: object) -> object:
+        if not isinstance(value, str):
+            return value
+
+        parts = urlsplit(value)
+        if parts.scheme not in {"postgres", "postgresql", "postgresql+asyncpg"}:
+            return value
+
+        query = dict(parse_qsl(parts.query, keep_blank_values=True))
+        ssl_mode = query.pop("sslmode", None)
+        query.pop("channel_binding", None)
+        if ssl_mode and "ssl" not in query:
+            query["ssl"] = ssl_mode
+
+        return urlunsplit(
+            (
+                "postgresql+asyncpg",
+                parts.netloc,
+                parts.path,
+                urlencode(query),
+                parts.fragment,
+            )
+        )
 
     @property
     def cors_origins_list(self) -> list[str]:
