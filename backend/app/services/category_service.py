@@ -2,14 +2,16 @@ from uuid import UUID
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.errors import ConflictError, NotFoundError
+from app.core.errors import BusinessRuleError, ConflictError, NotFoundError
 from app.models.category import Category
 from app.repositories.category_repository import CategoryRepository
+from app.repositories.product_repository import ProductRepository
 
 
 class CategoryService:
     def __init__(self, db: AsyncSession) -> None:
         self.categories = CategoryRepository(db)
+        self.products = ProductRepository(db)
 
     async def list(self, session_id: UUID) -> list[Category]:
         return await self.categories.list_by_session(session_id)
@@ -41,3 +43,16 @@ class CategoryService:
 
         category.name = name
         return await self.categories.save(category)
+
+    async def delete(self, session_id: UUID, category_id: UUID) -> None:
+        category = await self.get(session_id, category_id)
+        product_count = await self.products.count_by_category(
+            session_id,
+            category.id,
+        )
+        if product_count > 0:
+            raise BusinessRuleError(
+                "Não é possível excluir uma categoria com produtos vinculados"
+            )
+
+        await self.categories.delete(category)

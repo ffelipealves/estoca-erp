@@ -174,3 +174,95 @@ async def test_category_create_and_update_are_admin_only_and_session_scoped() ->
                     delete(Session).where(Session.id.in_(created_session_ids))
                 )
                 await db.commit()
+
+
+async def test_category_delete_blocks_linked_products_and_requires_admin() -> None:
+    transport = ASGITransport(app=app)
+    created_session_ids: list[UUID] = []
+
+    try:
+        async with (
+            AsyncClient(transport=transport, base_url="http://test") as client_a,
+            AsyncClient(transport=transport, base_url="http://test") as client_b,
+        ):
+            session_a_id, admin_headers_a = await bootstrap_and_login(
+                client_a,
+                "admin@estoca.demo",
+            )
+            created_session_ids.append(session_a_id)
+            operator_login = await client_a.post(
+                "/api/v1/auth/login",
+                json={
+                    "email": "operador@estoca.demo",
+                    "password": DEMO_PASSWORD,
+                },
+            )
+            operator_headers = {
+                "Authorization": f"Bearer {operator_login.json()['access_token']}"
+            }
+
+            categories = await client_a.get(
+                "/api/v1/categories",
+                headers=admin_headers_a,
+            )
+            linked_category_id = UUID(categories.json()[0]["id"])
+            empty_category = await client_a.post(
+                "/api/v1/categories",
+                headers=admin_headers_a,
+                json={"name": "Sem produtos"},
+            )
+            empty_category_id = UUID(empty_category.json()["id"])
+
+            forbidden = await client_a.delete(
+                f"/api/v1/categories/{empty_category_id}",
+                headers=operator_headers,
+            )
+            assert forbidden.status_code == 403
+
+            linked = await client_a.delete(
+                f"/api/v1/categories/{linked_category_id}",
+                headers=admin_headers_a,
+            )
+            assert linked.status_code == 422
+            assert linked.json() == {
+                "detail": (
+                    "Não é possível excluir uma categoria com produtos vinculados"
+                ),
+                "code": "business_rule_error",
+            }
+
+            session_b_id, admin_headers_b = await bootstrap_and_login(
+                client_b,
+                "admin@estoca.demo",
+            )
+            created_session_ids.append(session_b_id)
+            cross_session = await client_b.delete(
+                f"/api/v1/categories/{empty_category_id}",
+                headers=admin_headers_b,
+            )
+            assert cross_session.status_code == 404
+
+            deleted = await client_a.delete(
+                f"/api/v1/categories/{empty_category_id}",
+                headers=admin_headers_a,
+            )
+            assert deleted.status_code == 204
+            assert deleted.content == b""
+
+            missing = await client_a.get(
+                f"/api/v1/categories/{empty_category_id}",
+                headers=admin_headers_a,
+            )
+            assert missing.status_code == 404
+            linked_still_exists = await client_a.get(
+                f"/api/v1/categories/{linked_category_id}",
+                headers=admin_headers_a,
+            )
+            assert linked_still_exists.status_code == 200
+    finally:
+        if created_session_ids:
+            async with async_session_factory() as db:
+                await db.execute(
+                    delete(Session).where(Session.id.in_(created_session_ids))
+                )
+                await db.commit()

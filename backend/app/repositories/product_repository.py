@@ -19,6 +19,21 @@ class ProductRepository:
         )
         return count or 0
 
+    async def count_by_category(
+        self,
+        session_id: UUID,
+        category_id: UUID,
+    ) -> int:
+        count = await self.db.scalar(
+            select(func.count())
+            .select_from(Product)
+            .where(
+                Product.session_id == session_id,
+                Product.category_id == category_id,
+            )
+        )
+        return count or 0
+
     async def list_by_session(self, session_id: UUID) -> list[Product]:
         result = await self.db.scalars(
             select(Product)

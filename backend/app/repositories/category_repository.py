@@ -64,6 +64,10 @@ class CategoryRepository:
         await self.db.refresh(category)
         return category
 
+    async def delete(self, category: Category) -> None:
+        await self.db.delete(category)
+        await self.db.flush()
+
     async def create_many(self, categories: Sequence[Category]) -> list[Category]:
         self.db.add_all(categories)
         await self.db.flush()

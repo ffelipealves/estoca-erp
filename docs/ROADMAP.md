@@ -4,7 +4,7 @@ Cronograma de 14 dias, part-time, a partir de 2026-08-25. Cada dia deste roadmap
 
 ## Status atual
 
-**Dias 1 a 5 — concluídos; Dia 6 — em andamento.** Base FastAPI/PostgreSQL em Docker, models e migration inicial, configuração tipada, SQLAlchemy assíncrono e dependências reproduzíveis com Poetry. Sessões têm bootstrap, seed idempotente, cookie/header e isolamento provado. Login bcrypt/JWT, RBAC e reset administrativo estão completos. Categorias já têm lista e detalhe autenticados, além de criação e edição exclusivas para admin, com validação, conflito de nome e isolamento entre sessões cobertos por testes. Próximo incremento: exclusão administrativa com bloqueio quando houver produtos vinculados.
+**Dias 1 a 6 — concluídos.** Base FastAPI/PostgreSQL em Docker, models e migration inicial, configuração tipada, SQLAlchemy assíncrono e dependências reproduzíveis com Poetry. Sessões têm bootstrap, seed idempotente, cookie/header e isolamento provado. Login bcrypt/JWT, RBAC e reset administrativo estão completos. O CRUD de categorias exige autenticação, restringe mutações ao admin, valida conflitos dentro da sessão e bloqueia com `422` a exclusão de categorias com produtos vinculados. Próximo incremento: iniciar o CRUD de produtos do Dia 7.
 
 ## Dias
 

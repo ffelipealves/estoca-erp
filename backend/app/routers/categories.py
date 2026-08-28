@@ -59,3 +59,15 @@ async def update_category(
         payload.name,
     )
     return CategoryResponse.model_validate(category)
+
+
+@router.delete(
+    "/{category_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+)
+async def delete_category(
+    category_id: UUID,
+    admin_user: AdminUser,
+    db: DbSession,
+) -> None:
+    await CategoryService(db).delete(admin_user.session_id, category_id)
