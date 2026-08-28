@@ -4,7 +4,7 @@ from uuid import UUID
 from fastapi import APIRouter, Query, status
 
 from app.core.deps import AdminUser, CurrentUser, DbSession
-from app.schemas.product import ProductCreate, ProductResponse
+from app.schemas.product import ProductCreate, ProductResponse, ProductUpdate
 from app.services.product_service import ProductService
 
 
@@ -59,3 +59,34 @@ async def get_product(
 ) -> ProductResponse:
     product = await ProductService(db).get(current_user.session_id, product_id)
     return ProductResponse.model_validate(product)
+
+
+@router.put("/{product_id}", response_model=ProductResponse)
+async def update_product(
+    product_id: UUID,
+    payload: ProductUpdate,
+    admin_user: AdminUser,
+    db: DbSession,
+) -> ProductResponse:
+    product = await ProductService(db).update(
+        session_id=admin_user.session_id,
+        product_id=product_id,
+        category_id=payload.category_id,
+        name=payload.name,
+        sku=payload.sku,
+        price=payload.price,
+        low_stock_threshold=payload.low_stock_threshold,
+    )
+    return ProductResponse.model_validate(product)
+
+
+@router.delete(
+    "/{product_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+)
+async def delete_product(
+    product_id: UUID,
+    admin_user: AdminUser,
+    db: DbSession,
+) -> None:
+    await ProductService(db).delete(admin_user.session_id, product_id)

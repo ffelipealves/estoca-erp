@@ -294,3 +294,181 @@ async def test_product_create_enforces_rbac_sku_limit_and_initial_stock() -> Non
                     delete(Session).where(Session.id.in_(created_session_ids))
                 )
                 await db.commit()
+
+
+async def test_product_update_and_delete_preserve_stock_rules_and_isolation() -> None:
+    transport = ASGITransport(app=app)
+    created_session_ids: list[UUID] = []
+
+    try:
+        async with (
+            AsyncClient(transport=transport, base_url="http://test") as client_a,
+            AsyncClient(transport=transport, base_url="http://test") as client_b,
+        ):
+            bootstrap_a = await client_a.post("/api/v1/sessions/bootstrap")
+            session_a_id = UUID(bootstrap_a.json()["session_id"])
+            created_session_ids.append(session_a_id)
+            admin_login_a = await client_a.post(
+                "/api/v1/auth/login",
+                json={
+                    "email": "admin@estoca.demo",
+                    "password": DEMO_PASSWORD,
+                },
+            )
+            operator_login_a = await client_a.post(
+                "/api/v1/auth/login",
+                json={
+                    "email": "operador@estoca.demo",
+                    "password": DEMO_PASSWORD,
+                },
+            )
+            admin_headers_a = {
+                "Authorization": f"Bearer {admin_login_a.json()['access_token']}"
+            }
+            operator_headers_a = {
+                "Authorization": (
+                    f"Bearer {operator_login_a.json()['access_token']}"
+                )
+            }
+
+            categories_a = await client_a.get(
+                "/api/v1/categories",
+                headers=admin_headers_a,
+            )
+            source_category_id = categories_a.json()[0]["id"]
+            target_category_id = categories_a.json()[1]["id"]
+            existing_products = await client_a.get(
+                "/api/v1/products",
+                headers=admin_headers_a,
+            )
+            existing_sku = existing_products.json()[0]["sku"]
+
+            created = await client_a.post(
+                "/api/v1/products",
+                headers=admin_headers_a,
+                json={
+                    "category_id": source_category_id,
+                    "name": "Produto editável",
+                    "sku": "EDIT-001",
+                    "price": "10.00",
+                    "initial_quantity": 4,
+                    "low_stock_threshold": 2,
+                },
+            )
+            product_id = UUID(created.json()["id"])
+            update_payload = {
+                "category_id": target_category_id,
+                "name": "  Produto atualizado  ",
+                "sku": " edit-002 ",
+                "price": "12.50",
+                "low_stock_threshold": 6,
+            }
+
+            forbidden_update = await client_a.put(
+                f"/api/v1/products/{product_id}",
+                headers=operator_headers_a,
+                json=update_payload,
+            )
+            assert forbidden_update.status_code == 403
+
+            direct_quantity = await client_a.put(
+                f"/api/v1/products/{product_id}",
+                headers=admin_headers_a,
+                json={**update_payload, "quantity": 999},
+            )
+            assert direct_quantity.status_code == 422
+
+            direct_initial_quantity = await client_a.put(
+                f"/api/v1/products/{product_id}",
+                headers=admin_headers_a,
+                json={**update_payload, "initial_quantity": 999},
+            )
+            assert direct_initial_quantity.status_code == 422
+
+            invalid_category = await client_a.put(
+                f"/api/v1/products/{product_id}",
+                headers=admin_headers_a,
+                json={**update_payload, "category_id": str(uuid4())},
+            )
+            assert invalid_category.status_code == 404
+
+            duplicate_sku = await client_a.put(
+                f"/api/v1/products/{product_id}",
+                headers=admin_headers_a,
+                json={**update_payload, "sku": existing_sku},
+            )
+            assert duplicate_sku.status_code == 409
+
+            bootstrap_b = await client_b.post("/api/v1/sessions/bootstrap")
+            session_b_id = UUID(bootstrap_b.json()["session_id"])
+            created_session_ids.append(session_b_id)
+            admin_login_b = await client_b.post(
+                "/api/v1/auth/login",
+                json={
+                    "email": "admin@estoca.demo",
+                    "password": DEMO_PASSWORD,
+                },
+            )
+            admin_headers_b = {
+                "Authorization": f"Bearer {admin_login_b.json()['access_token']}"
+            }
+            cross_session = await client_b.delete(
+                f"/api/v1/products/{product_id}",
+                headers=admin_headers_b,
+            )
+            assert cross_session.status_code == 404
+
+            updated = await client_a.put(
+                f"/api/v1/products/{product_id}",
+                headers=admin_headers_a,
+                json=update_payload,
+            )
+            assert updated.status_code == 200
+            assert updated.json()["category_id"] == target_category_id
+            assert updated.json()["name"] == "Produto atualizado"
+            assert updated.json()["sku"] == "EDIT-002"
+            assert updated.json()["price"] == "12.50"
+            assert updated.json()["quantity"] == 4
+            assert updated.json()["low_stock_threshold"] == 6
+
+            async with async_session_factory() as db:
+                movements = await StockMovementRepository(db).list_by_product(
+                    session_a_id,
+                    product_id,
+                )
+                assert len(movements) == 1
+                assert movements[0].resulting_quantity == 4
+
+            forbidden_delete = await client_a.delete(
+                f"/api/v1/products/{product_id}",
+                headers=operator_headers_a,
+            )
+            assert forbidden_delete.status_code == 403
+
+            deleted = await client_a.delete(
+                f"/api/v1/products/{product_id}",
+                headers=admin_headers_a,
+            )
+            assert deleted.status_code == 204
+            assert deleted.content == b""
+
+            missing = await client_a.get(
+                f"/api/v1/products/{product_id}",
+                headers=admin_headers_a,
+            )
+            assert missing.status_code == 404
+            async with async_session_factory() as db:
+                assert (
+                    await StockMovementRepository(db).list_by_product(
+                        session_a_id,
+                        product_id,
+                    )
+                    == []
+                )
+    finally:
+        if created_session_ids:
+            async with async_session_factory() as db:
+                await db.execute(
+                    delete(Session).where(Session.id.in_(created_session_ids))
+                )
+                await db.commit()

@@ -80,3 +80,34 @@ class ProductService:
                 quantity=initial_quantity,
             )
         return product
+
+    async def update(
+        self,
+        *,
+        session_id: UUID,
+        product_id: UUID,
+        category_id: UUID,
+        name: str,
+        sku: str,
+        price: Decimal,
+        low_stock_threshold: int,
+    ) -> Product:
+        product = await self.get(session_id, product_id)
+
+        if await self.categories.get_by_id(session_id, category_id) is None:
+            raise NotFoundError("Categoria não encontrada")
+
+        product_with_sku = await self.products.get_by_sku(session_id, sku)
+        if product_with_sku is not None and product_with_sku.id != product.id:
+            raise ConflictError("Já existe um produto com este SKU")
+
+        product.category_id = category_id
+        product.name = name
+        product.sku = sku
+        product.price = price
+        product.low_stock_threshold = low_stock_threshold
+        return await self.products.save(product)
+
+    async def delete(self, session_id: UUID, product_id: UUID) -> None:
+        product = await self.get(session_id, product_id)
+        await self.products.delete(product)

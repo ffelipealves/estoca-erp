@@ -5,12 +5,13 @@ from uuid import UUID
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 
-class ProductCreate(BaseModel):
+class ProductWrite(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
     category_id: UUID
     name: str = Field(min_length=1, max_length=150)
     sku: str = Field(min_length=1, max_length=50)
     price: Decimal = Field(gt=0, max_digits=10, decimal_places=2)
-    initial_quantity: int = Field(default=0, ge=0)
     low_stock_threshold: int = Field(default=5, ge=0)
 
     @field_validator("name", mode="before")
@@ -26,6 +27,14 @@ class ProductCreate(BaseModel):
         if isinstance(value, str):
             return value.strip().upper()
         return value
+
+
+class ProductCreate(ProductWrite):
+    initial_quantity: int = Field(default=0, ge=0)
+
+
+class ProductUpdate(ProductWrite):
+    pass
 
 
 class ProductResponse(BaseModel):
