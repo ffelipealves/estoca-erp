@@ -47,9 +47,7 @@ class StockMovementRepository:
             filters.append(StockMovement.product_id == product_id)
 
         total = await self.db.scalar(
-            select(func.count())
-            .select_from(StockMovement)
-            .where(*filters)
+            select(func.count()).select_from(StockMovement).where(*filters)
         )
         result = await self.db.scalars(
             select(StockMovement)

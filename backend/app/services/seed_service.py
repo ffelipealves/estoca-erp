@@ -13,7 +13,6 @@ from app.repositories.category_repository import CategoryRepository
 from app.repositories.demo_user_repository import DemoUserRepository
 from app.repositories.product_repository import ProductRepository
 
-
 DEMO_PASSWORD = "demo123"
 
 CATEGORY_NAMES = (

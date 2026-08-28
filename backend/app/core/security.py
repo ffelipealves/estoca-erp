@@ -12,7 +12,6 @@ from app.core.config import settings
 from app.core.errors import AuthenticationError
 from app.models.enums import UserRole
 
-
 password_hash = PasswordHash((BcryptHasher(),))
 
 

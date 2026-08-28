@@ -11,7 +11,6 @@ from app.schemas.stock_movement import (
 )
 from app.services.stock_movement_service import StockMovementService
 
-
 router = APIRouter(prefix="/stock-movements", tags=["stock-movements"])
 
 
@@ -52,8 +51,7 @@ async def list_stock_movements(
     )
     return StockMovementPage(
         items=[
-            StockMovementResponse.model_validate(movement)
-            for movement in result.items
+            StockMovementResponse.model_validate(movement) for movement in result.items
         ],
         page=result.page,
         page_size=result.page_size,

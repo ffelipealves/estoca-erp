@@ -4,7 +4,7 @@ Cronograma de 14 dias, part-time, a partir de 2026-08-25. Cada dia deste roadmap
 
 ## Status atual
 
-**Dias 1 a 9 — concluídos.** Checkpoint da semana 1 alcançado: sessões isoladas, autenticação/RBAC e CRUDs completos de categorias, produtos e movimentações. Endpoints internos protegidos por `X-Cron-Secret` removem sessões expiradas ou todas as sessões usando apenas `DELETE` em `sessions`, com cascade validado. A imagem final aplica migrations automaticamente, respeita `$PORT` em produção e mantém Poetry/testes fora do runtime. Próximo incremento: CI no GitHub Actions e preparação do deploy em Neon + Render no Dia 10.
+**Dias 1 a 9 — concluídos; Dia 10 — em andamento.** Checkpoint da semana 1 alcançado: sessões isoladas, autenticação/RBAC e CRUDs completos de categorias, produtos e movimentações. Endpoints internos protegidos por `X-Cron-Secret` removem sessões expiradas ou todas as sessões usando apenas `DELETE` em `sessions`, com cascade validado. A imagem final aplica migrations automaticamente, respeita `$PORT` em produção e mantém Poetry/testes fora do runtime. A CI do backend valida qualidade, migrações, testes com cobertura e a imagem de produção no GitHub Actions. Próximo incremento: provisionar o PostgreSQL no Neon e publicar a API no Render.
 
 ## Dias
 

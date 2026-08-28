@@ -50,10 +50,7 @@ async def test_wipe_all_requires_secret_and_cascades_every_session() -> None:
 
             async with async_session_factory() as db:
                 for session_id in created_session_ids:
-                    assert (
-                        await SessionRepository(db).get_by_id(session_id)
-                        is not None
-                    )
+                    assert await SessionRepository(db).get_by_id(session_id) is not None
 
             wipe = await client.post(
                 "/internal/cleanup/wipe-all",
@@ -76,21 +73,11 @@ async def test_wipe_all_requires_secret_and_cascades_every_session() -> None:
         async with async_session_factory() as db:
             for session_id in created_session_ids:
                 assert await SessionRepository(db).get_by_id(session_id) is None
+                assert await CategoryRepository(db).count_by_session(session_id) == 0
+                assert await ProductRepository(db).count_by_session(session_id) == 0
+                assert await DemoUserRepository(db).count_by_session(session_id) == 0
                 assert (
-                    await CategoryRepository(db).count_by_session(session_id)
-                    == 0
-                )
-                assert (
-                    await ProductRepository(db).count_by_session(session_id)
-                    == 0
-                )
-                assert (
-                    await DemoUserRepository(db).count_by_session(session_id)
-                    == 0
-                )
-                assert (
-                    await StockMovementRepository(db).count_by_session(session_id)
-                    == 0
+                    await StockMovementRepository(db).count_by_session(session_id) == 0
                 )
     finally:
         if created_session_ids:

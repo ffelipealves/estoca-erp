@@ -26,9 +26,7 @@ class CategoryService:
         if await self.categories.get_by_name(session_id, name) is not None:
             raise ConflictError("Já existe uma categoria com este nome")
 
-        return await self.categories.create(
-            Category(session_id=session_id, name=name)
-        )
+        return await self.categories.create(Category(session_id=session_id, name=name))
 
     async def update(
         self,

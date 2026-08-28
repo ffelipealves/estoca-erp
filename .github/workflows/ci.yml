@@ -1,0 +1,84 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  backend:
+    name: Backend
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: estoca_test
+          POSTGRES_USER: estoca
+          POSTGRES_PASSWORD: estoca
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U estoca -d estoca_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    env:
+      ENVIRONMENT: test
+      DATABASE_URL: postgresql+asyncpg://estoca:estoca@localhost:5432/estoca_test
+      TEST_DATABASE_URL: postgresql+asyncpg://estoca:estoca@localhost:5432/estoca_test
+      POETRY_NO_INTERACTION: "1"
+      POETRY_VERSION: 2.4.1
+
+    defaults:
+      run:
+        working-directory: backend
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+
+      - name: Install Poetry
+        run: pipx install "poetry==${POETRY_VERSION}"
+
+      - name: Set up Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+          cache: poetry
+          cache-dependency-path: backend/poetry.lock
+
+      - name: Install dependencies
+        run: poetry sync --with dev --no-root
+
+      - name: Validate Poetry files
+        run: poetry check --lock
+
+      - name: Check code quality
+        run: |
+          poetry run ruff check .
+          poetry run ruff format --check .
+
+      - name: Apply database migrations
+        run: poetry run alembic upgrade head
+
+      - name: Run tests with coverage
+        run: >-
+          poetry run pytest
+          --cov=app
+          --cov-report=term-missing
+          --cov-report=xml
+
+      - name: Build production image
+        run: docker build --target production --tag estoca-backend:ci .

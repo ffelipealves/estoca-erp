@@ -36,8 +36,6 @@ async def test_seed_session_creates_isolated_catalog_and_users_once() -> None:
             "admin@estoca.demo",
             "operador@estoca.demo",
         }
-        assert all(
-            verify_password(DEMO_PASSWORD, user.password_hash) for user in users
-        )
+        assert all(verify_password(DEMO_PASSWORD, user.password_hash) for user in users)
 
         await db.rollback()

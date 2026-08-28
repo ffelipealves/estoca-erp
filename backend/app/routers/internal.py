@@ -4,7 +4,6 @@ from app.core.deps import CronAuthorized, DbSession
 from app.schemas.internal import CleanupResponse
 from app.services.session_cleanup_service import SessionCleanupService
 
-
 router = APIRouter(prefix="/internal/cleanup", tags=["internal"])
 
 

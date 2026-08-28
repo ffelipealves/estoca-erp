@@ -9,9 +9,7 @@ from app.repositories.session_repository import SessionRepository
 class SessionCleanupService:
     def __init__(self, db: AsyncSession) -> None:
         self.sessions = SessionRepository(db)
-        self.inactivity_limit = timedelta(
-            minutes=settings.session_inactivity_minutes
-        )
+        self.inactivity_limit = timedelta(minutes=settings.session_inactivity_minutes)
         self.max_age = timedelta(hours=settings.session_max_age_hours)
 
     async def delete_expired(self, *, now: datetime | None = None) -> int:

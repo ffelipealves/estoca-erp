@@ -155,9 +155,7 @@ async def test_product_create_enforces_rbac_sku_limit_and_initial_stock() -> Non
                 "Authorization": f"Bearer {admin_login_a.json()['access_token']}"
             }
             operator_headers_a = {
-                "Authorization": (
-                    f"Bearer {operator_login_a.json()['access_token']}"
-                )
+                "Authorization": (f"Bearer {operator_login_a.json()['access_token']}")
             }
             admin_user_id = UUID(admin_login_a.json()["user"]["id"])
 
@@ -272,10 +270,7 @@ async def test_product_create_enforces_rbac_sku_limit_and_initial_stock() -> Non
                 ]
                 await ProductRepository(db).create_many(products)
                 await db.commit()
-                assert (
-                    await ProductRepository(db).count_by_session(session_a_id)
-                    == 50
-                )
+                assert await ProductRepository(db).count_by_session(session_a_id) == 50
 
             over_limit = await client_a.post(
                 "/api/v1/products",
@@ -326,9 +321,7 @@ async def test_product_update_and_delete_preserve_stock_rules_and_isolation() ->
                 "Authorization": f"Bearer {admin_login_a.json()['access_token']}"
             }
             operator_headers_a = {
-                "Authorization": (
-                    f"Bearer {operator_login_a.json()['access_token']}"
-                )
+                "Authorization": (f"Bearer {operator_login_a.json()['access_token']}")
             }
 
             categories_a = await client_a.get(

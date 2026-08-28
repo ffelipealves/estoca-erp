@@ -74,6 +74,4 @@ class CategoryRepository:
         return list(categories)
 
     async def delete_by_session(self, session_id: UUID) -> None:
-        await self.db.execute(
-            delete(Category).where(Category.session_id == session_id)
-        )
+        await self.db.execute(delete(Category).where(Category.session_id == session_id))

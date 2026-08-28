@@ -8,10 +8,7 @@ from app.core.security import create_access_token, verify_password
 from app.models.demo_user import DemoUser
 from app.repositories.demo_user_repository import DemoUserRepository
 
-
-DUMMY_PASSWORD_HASH = (
-    "$2b$12$LkXSn5emUtUN.ADeoveXIOpfoqSla9eff2XkRLxayMZJIAvnDE61O"
-)
+DUMMY_PASSWORD_HASH = "$2b$12$LkXSn5emUtUN.ADeoveXIOpfoqSla9eff2XkRLxayMZJIAvnDE61O"
 
 
 @dataclass(frozen=True, slots=True)

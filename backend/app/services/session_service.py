@@ -18,9 +18,7 @@ class SessionResolution:
 class SessionService:
     def __init__(self, db: AsyncSession) -> None:
         self.repository = SessionRepository(db)
-        self.inactivity_limit = timedelta(
-            minutes=settings.session_inactivity_minutes
-        )
+        self.inactivity_limit = timedelta(minutes=settings.session_inactivity_minutes)
         self.max_age = timedelta(hours=settings.session_max_age_hours)
 
     async def resolve_or_create(

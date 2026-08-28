@@ -7,7 +7,6 @@ from app.core.deps import AdminUser, CurrentUser, DbSession
 from app.schemas.product import ProductCreate, ProductResponse, ProductUpdate
 from app.services.product_service import ProductService
 
-
 router = APIRouter(prefix="/products", tags=["products"])
 
 

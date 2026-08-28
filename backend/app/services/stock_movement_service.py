@@ -12,7 +12,6 @@ from app.repositories.product_repository import ProductRepository
 from app.repositories.session_repository import SessionRepository
 from app.repositories.stock_movement_repository import StockMovementRepository
 
-
 MAX_MOVEMENTS_PER_SESSION = 500
 
 
@@ -63,9 +62,7 @@ class StockMovementService:
             await self.movements.count_by_session(session_id)
             >= MAX_MOVEMENTS_PER_SESSION
         ):
-            raise LimitExceededError(
-                "Limite de 500 movimentações por sessão atingido"
-            )
+            raise LimitExceededError("Limite de 500 movimentações por sessão atingido")
 
     async def record_initial_stock(
         self,
@@ -143,10 +140,14 @@ class StockMovementService:
         movement_type: StockMovementType,
         quantity: int,
     ) -> None:
-        if movement_type in {
-            StockMovementType.entrada,
-            StockMovementType.saida,
-        } and quantity <= 0:
+        if (
+            movement_type
+            in {
+                StockMovementType.entrada,
+                StockMovementType.saida,
+            }
+            and quantity <= 0
+        ):
             raise BusinessRuleError("A quantidade deve ser maior que zero")
         if movement_type is StockMovementType.ajuste and quantity < 0:
             raise BusinessRuleError(

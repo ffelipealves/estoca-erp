@@ -35,9 +35,7 @@ class Settings(BaseSettings):
     @property
     def cors_origins_list(self) -> list[str]:
         return [
-            origin.strip()
-            for origin in self.cors_origins.split(",")
-            if origin.strip()
+            origin.strip() for origin in self.cors_origins.split(",") if origin.strip()
         ]
 
     @model_validator(mode="after")
@@ -50,7 +48,9 @@ class Settings(BaseSettings):
             self.cron_secret.get_secret_value(),
         }
         if any(len(secret) < 32 for secret in secret_values):
-            raise ValueError("JWT_SECRET and CRON_SECRET must have at least 32 characters")
+            raise ValueError(
+                "JWT_SECRET and CRON_SECRET must have at least 32 characters"
+            )
 
         if self.environment == "production":
             development_secrets = {
@@ -58,7 +58,9 @@ class Settings(BaseSettings):
                 "development-only-cron-secret-change-me",
             }
             if development_secrets & secret_values:
-                raise ValueError("Production requires explicit JWT_SECRET and CRON_SECRET")
+                raise ValueError(
+                    "Production requires explicit JWT_SECRET and CRON_SECRET"
+                )
 
         return self
 

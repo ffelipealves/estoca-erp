@@ -65,20 +65,12 @@ async def test_cleanup_expired_requires_secret_and_preserves_active_sessions() -
         async with async_session_factory() as db:
             for session_id in expired_session_ids:
                 assert await SessionRepository(db).get_by_id(session_id) is None
-                assert (
-                    await CategoryRepository(db).count_by_session(session_id)
-                    == 0
-                )
+                assert await CategoryRepository(db).count_by_session(session_id) == 0
             assert active_session_id is not None
             assert await SessionRepository(db).get_by_id(active_session_id) is not None
-            assert (
-                await CategoryRepository(db).count_by_session(active_session_id)
-                == 4
-            )
+            assert await CategoryRepository(db).count_by_session(active_session_id) == 4
     finally:
         if active_session_id is not None:
             async with async_session_factory() as db:
-                await db.execute(
-                    delete(Session).where(Session.id == active_session_id)
-                )
+                await db.execute(delete(Session).where(Session.id == active_session_id))
                 await db.commit()

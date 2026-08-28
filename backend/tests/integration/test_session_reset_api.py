@@ -55,9 +55,7 @@ async def test_reset_is_admin_only_and_preserves_session_and_users() -> None:
                 products_before = await ProductRepository(db).list_by_session(
                     session_id
                 )
-                users_before = await DemoUserRepository(db).list_by_session(
-                    session_id
-                )
+                users_before = await DemoUserRepository(db).list_by_session(session_id)
                 db.add(
                     StockMovement(
                         session_id=session_id,
@@ -79,8 +77,7 @@ async def test_reset_is_admin_only_and_preserves_session_and_users() -> None:
 
             async with async_session_factory() as db:
                 assert (
-                    await StockMovementRepository(db).count_by_session(session_id)
-                    == 1
+                    await StockMovementRepository(db).count_by_session(session_id) == 1
                 )
 
             reset = await client.post(
@@ -98,12 +95,8 @@ async def test_reset_is_admin_only_and_preserves_session_and_users() -> None:
                 categories_after = await CategoryRepository(db).list_by_session(
                     session_id
                 )
-                products_after = await ProductRepository(db).list_by_session(
-                    session_id
-                )
-                users_after = await DemoUserRepository(db).list_by_session(
-                    session_id
-                )
+                products_after = await ProductRepository(db).list_by_session(session_id)
+                users_after = await DemoUserRepository(db).list_by_session(session_id)
                 movement_count = await StockMovementRepository(db).count_by_session(
                     session_id
                 )

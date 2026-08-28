@@ -8,6 +8,7 @@ env/
 .pytest_cache/
 .ruff_cache/
 .coverage
+coverage.xml
 htmlcov/
 
 # Node / Next.js

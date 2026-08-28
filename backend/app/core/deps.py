@@ -17,7 +17,6 @@ from app.models.session import Session
 from app.repositories.demo_user_repository import DemoUserRepository
 from app.services.session_service import SessionService
 
-
 DbSession = Annotated[AsyncSession, Depends(get_db)]
 
 

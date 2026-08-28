@@ -12,9 +12,7 @@ class SessionRepository:
         self.db = db
 
     async def get_by_id(self, session_id: UUID) -> Session | None:
-        result = await self.db.execute(
-            select(Session).where(Session.id == session_id)
-        )
+        result = await self.db.execute(select(Session).where(Session.id == session_id))
         return result.scalar_one_or_none()
 
     async def get_by_id_for_update(self, session_id: UUID) -> Session | None:

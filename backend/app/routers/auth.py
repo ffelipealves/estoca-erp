@@ -4,7 +4,6 @@ from app.core.deps import CurrentSession, DbSession
 from app.schemas.auth import LoginRequest, LoginResponse, UserResponse
 from app.services.auth_service import AuthService
 
-
 router = APIRouter(prefix="/auth", tags=["auth"])
 
 

@@ -9,7 +9,6 @@ from app.repositories.category_repository import CategoryRepository
 from app.repositories.product_repository import ProductRepository
 from app.services.stock_movement_service import StockMovementService
 
-
 MAX_PRODUCTS_PER_SESSION = 50
 
 

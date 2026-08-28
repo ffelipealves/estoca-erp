@@ -6,7 +6,6 @@ from app.core.deps import AdminUser, CurrentUser, DbSession
 from app.schemas.category import CategoryCreate, CategoryResponse, CategoryUpdate
 from app.services.category_service import CategoryService
 
-
 router = APIRouter(prefix="/categories", tags=["categories"])
 
 

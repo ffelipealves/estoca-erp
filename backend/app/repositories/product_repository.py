@@ -54,13 +54,9 @@ class ProductRepository:
                 )
             )
         if low_stock is True:
-            statement = statement.where(
-                Product.quantity <= Product.low_stock_threshold
-            )
+            statement = statement.where(Product.quantity <= Product.low_stock_threshold)
         elif low_stock is False:
-            statement = statement.where(
-                Product.quantity > Product.low_stock_threshold
-            )
+            statement = statement.where(Product.quantity > Product.low_stock_threshold)
 
         result = await self.db.scalars(statement.order_by(Product.sku))
         return list(result)
@@ -123,6 +119,4 @@ class ProductRepository:
         return list(products)
 
     async def delete_by_session(self, session_id: UUID) -> None:
-        await self.db.execute(
-            delete(Product).where(Product.session_id == session_id)
-        )
+        await self.db.execute(delete(Product).where(Product.session_id == session_id))

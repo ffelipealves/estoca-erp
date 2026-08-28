@@ -3,10 +3,10 @@ from collections.abc import Iterator
 from pathlib import Path
 
 import pytest
-from alembic import command
 from alembic.config import Config
 from sqlalchemy.engine import make_url
 
+from alembic import command
 
 BACKEND_ROOT = Path(__file__).resolve().parents[1]
 TEST_DATABASE_URL = os.getenv(

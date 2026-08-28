@@ -49,9 +49,7 @@ async def test_stock_movement_api_supports_roles_pagination_and_isolation() -> N
             )
             product_id = products.json()[0]["id"]
 
-            unauthenticated_list = await client_a.get(
-                "/api/v1/stock-movements"
-            )
+            unauthenticated_list = await client_a.get("/api/v1/stock-movements")
             unauthenticated_create = await client_a.post(
                 "/api/v1/stock-movements",
                 json={
@@ -152,9 +150,7 @@ async def test_stock_movement_api_supports_roles_pagination_and_isolation() -> N
                 },
             )
             operator_headers_b = {
-                "Authorization": (
-                    f"Bearer {operator_login_b.json()['access_token']}"
-                )
+                "Authorization": (f"Bearer {operator_login_b.json()['access_token']}")
             }
             cross_session_create = await client_b.post(
                 "/api/v1/stock-movements",
