@@ -78,6 +78,26 @@ class ProductRepository:
         )
         return result.scalar_one_or_none()
 
+    async def get_by_sku(self, session_id: UUID, sku: str) -> Product | None:
+        result = await self.db.execute(
+            select(Product).where(
+                Product.session_id == session_id,
+                Product.sku == sku,
+            )
+        )
+        return result.scalar_one_or_none()
+
+    async def create(self, product: Product) -> Product:
+        self.db.add(product)
+        await self.db.flush()
+        await self.db.refresh(product)
+        return product
+
+    async def save(self, product: Product) -> Product:
+        await self.db.flush()
+        await self.db.refresh(product)
+        return product
+
     async def create_many(self, products: Sequence[Product]) -> list[Product]:
         self.db.add_all(products)
         await self.db.flush()

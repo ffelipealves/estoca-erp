@@ -18,6 +18,27 @@ class StockMovementRepository:
         )
         return count or 0
 
+    async def list_by_product(
+        self,
+        session_id: UUID,
+        product_id: UUID,
+    ) -> list[StockMovement]:
+        result = await self.db.scalars(
+            select(StockMovement)
+            .where(
+                StockMovement.session_id == session_id,
+                StockMovement.product_id == product_id,
+            )
+            .order_by(StockMovement.created_at, StockMovement.id)
+        )
+        return list(result)
+
+    async def create(self, movement: StockMovement) -> StockMovement:
+        self.db.add(movement)
+        await self.db.flush()
+        await self.db.refresh(movement)
+        return movement
+
     async def delete_by_session(self, session_id: UUID) -> None:
         await self.db.execute(
             delete(StockMovement).where(StockMovement.session_id == session_id)

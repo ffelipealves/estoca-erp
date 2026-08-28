@@ -1,11 +1,16 @@
-from uuid import UUID
+from decimal import Decimal
+from uuid import UUID, uuid4
 
 from httpx import ASGITransport, AsyncClient
 from sqlalchemy import delete
 
 from app.core.database import async_session_factory
 from app.main import app
+from app.models.enums import StockMovementType
+from app.models.product import Product
 from app.models.session import Session
+from app.repositories.product_repository import ProductRepository
+from app.repositories.stock_movement_repository import StockMovementRepository
 from app.services.seed_service import DEMO_PASSWORD
 
 
@@ -111,6 +116,177 @@ async def test_product_reads_filter_and_isolate_sessions() -> None:
                 params={"category_id": electronics_id},
             )
             assert cross_session_filter.json() == []
+    finally:
+        if created_session_ids:
+            async with async_session_factory() as db:
+                await db.execute(
+                    delete(Session).where(Session.id.in_(created_session_ids))
+                )
+                await db.commit()
+
+
+async def test_product_create_enforces_rbac_sku_limit_and_initial_stock() -> None:
+    transport = ASGITransport(app=app)
+    created_session_ids: list[UUID] = []
+
+    try:
+        async with (
+            AsyncClient(transport=transport, base_url="http://test") as client_a,
+            AsyncClient(transport=transport, base_url="http://test") as client_b,
+        ):
+            bootstrap_a = await client_a.post("/api/v1/sessions/bootstrap")
+            session_a_id = UUID(bootstrap_a.json()["session_id"])
+            created_session_ids.append(session_a_id)
+            admin_login_a = await client_a.post(
+                "/api/v1/auth/login",
+                json={
+                    "email": "admin@estoca.demo",
+                    "password": DEMO_PASSWORD,
+                },
+            )
+            operator_login_a = await client_a.post(
+                "/api/v1/auth/login",
+                json={
+                    "email": "operador@estoca.demo",
+                    "password": DEMO_PASSWORD,
+                },
+            )
+            admin_headers_a = {
+                "Authorization": f"Bearer {admin_login_a.json()['access_token']}"
+            }
+            operator_headers_a = {
+                "Authorization": (
+                    f"Bearer {operator_login_a.json()['access_token']}"
+                )
+            }
+            admin_user_id = UUID(admin_login_a.json()["user"]["id"])
+
+            categories = await client_a.get(
+                "/api/v1/categories",
+                headers=admin_headers_a,
+            )
+            category_id = UUID(categories.json()[0]["id"])
+            payload = {
+                "category_id": str(category_id),
+                "name": "  Água mineral  ",
+                "sku": "  ag-001  ",
+                "price": "3.75",
+                "initial_quantity": 7,
+                "low_stock_threshold": 3,
+            }
+
+            forbidden = await client_a.post(
+                "/api/v1/products",
+                headers=operator_headers_a,
+                json=payload,
+            )
+            assert forbidden.status_code == 403
+
+            invalid_category = await client_a.post(
+                "/api/v1/products",
+                headers=admin_headers_a,
+                json={**payload, "category_id": str(uuid4())},
+            )
+            assert invalid_category.status_code == 404
+
+            invalid_quantity = await client_a.post(
+                "/api/v1/products",
+                headers=admin_headers_a,
+                json={**payload, "initial_quantity": -1},
+            )
+            assert invalid_quantity.status_code == 422
+
+            created = await client_a.post(
+                "/api/v1/products",
+                headers=admin_headers_a,
+                json=payload,
+            )
+            assert created.status_code == 201
+            assert created.json()["name"] == "Água mineral"
+            assert created.json()["sku"] == "AG-001"
+            assert created.json()["price"] == "3.75"
+            assert created.json()["quantity"] == 7
+            product_id = UUID(created.json()["id"])
+
+            async with async_session_factory() as db:
+                movements = await StockMovementRepository(db).list_by_product(
+                    session_a_id,
+                    product_id,
+                )
+                assert len(movements) == 1
+                assert movements[0].type is StockMovementType.entrada
+                assert movements[0].quantity == 7
+                assert movements[0].resulting_quantity == 7
+                assert movements[0].performed_by_user_id == admin_user_id
+                assert movements[0].note == "Estoque inicial"
+
+            duplicate = await client_a.post(
+                "/api/v1/products",
+                headers=admin_headers_a,
+                json={**payload, "sku": " AG-001 "},
+            )
+            assert duplicate.status_code == 409
+            assert duplicate.json() == {
+                "detail": "Já existe um produto com este SKU",
+                "code": "conflict",
+            }
+
+            bootstrap_b = await client_b.post("/api/v1/sessions/bootstrap")
+            session_b_id = UUID(bootstrap_b.json()["session_id"])
+            created_session_ids.append(session_b_id)
+            admin_login_b = await client_b.post(
+                "/api/v1/auth/login",
+                json={
+                    "email": "admin@estoca.demo",
+                    "password": DEMO_PASSWORD,
+                },
+            )
+            admin_headers_b = {
+                "Authorization": f"Bearer {admin_login_b.json()['access_token']}"
+            }
+            categories_b = await client_b.get(
+                "/api/v1/categories",
+                headers=admin_headers_b,
+            )
+            same_sku_other_session = await client_b.post(
+                "/api/v1/products",
+                headers=admin_headers_b,
+                json={
+                    **payload,
+                    "category_id": categories_b.json()[0]["id"],
+                    "initial_quantity": 0,
+                },
+            )
+            assert same_sku_other_session.status_code == 201
+
+            async with async_session_factory() as db:
+                products = [
+                    Product(
+                        session_id=session_a_id,
+                        category_id=category_id,
+                        name=f"Produto limite {index}",
+                        sku=f"LIMIT-{index:03d}",
+                        price=Decimal("1.00"),
+                    )
+                    for index in range(41)
+                ]
+                await ProductRepository(db).create_many(products)
+                await db.commit()
+                assert (
+                    await ProductRepository(db).count_by_session(session_a_id)
+                    == 50
+                )
+
+            over_limit = await client_a.post(
+                "/api/v1/products",
+                headers=admin_headers_a,
+                json={**payload, "sku": "OVER-050"},
+            )
+            assert over_limit.status_code == 422
+            assert over_limit.json() == {
+                "detail": "Limite de 50 produtos por sessão atingido",
+                "code": "limit_exceeded",
+            }
     finally:
         if created_session_ids:
             async with async_session_factory() as db:
