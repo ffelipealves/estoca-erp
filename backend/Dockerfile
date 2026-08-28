@@ -40,4 +40,4 @@ ENV VIRTUAL_ENV=/opt/venv \
 COPY --from=builder /opt/venv /opt/venv
 COPY . .
 
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["sh", "-c", "alembic upgrade head && exec uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000}"]

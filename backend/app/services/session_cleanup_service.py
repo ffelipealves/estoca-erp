@@ -20,3 +20,6 @@ class SessionCleanupService:
             inactivity_cutoff=resolved_at - self.inactivity_limit,
             max_age_cutoff=resolved_at - self.max_age,
         )
+
+    async def delete_all(self) -> int:
+        return await self.sessions.delete_all()

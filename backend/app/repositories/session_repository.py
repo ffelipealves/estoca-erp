@@ -54,3 +54,7 @@ class SessionRepository:
             .returning(Session.id)
         )
         return len(result.scalars().all())
+
+    async def delete_all(self) -> int:
+        result = await self.db.execute(delete(Session).returning(Session.id))
+        return len(result.scalars().all())

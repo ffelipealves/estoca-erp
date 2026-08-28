@@ -15,3 +15,12 @@ async def cleanup_expired_sessions(
 ) -> CleanupResponse:
     deleted_sessions = await SessionCleanupService(db).delete_expired()
     return CleanupResponse(deleted_sessions=deleted_sessions)
+
+
+@router.post("/wipe-all", response_model=CleanupResponse)
+async def wipe_all_sessions(
+    _cron_authorized: CronAuthorized,
+    db: DbSession,
+) -> CleanupResponse:
+    deleted_sessions = await SessionCleanupService(db).delete_all()
+    return CleanupResponse(deleted_sessions=deleted_sessions)
