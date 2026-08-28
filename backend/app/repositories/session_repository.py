@@ -1,7 +1,7 @@
 from datetime import datetime
 from uuid import UUID
 
-from sqlalchemy import select
+from sqlalchemy import delete, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.session import Session
@@ -36,3 +36,21 @@ class SessionRepository:
         session.last_activity_at = now
         await self.db.flush()
         return session
+
+    async def delete_expired(
+        self,
+        *,
+        inactivity_cutoff: datetime,
+        max_age_cutoff: datetime,
+    ) -> int:
+        result = await self.db.execute(
+            delete(Session)
+            .where(
+                or_(
+                    Session.last_activity_at <= inactivity_cutoff,
+                    Session.created_at <= max_age_cutoff,
+                )
+            )
+            .returning(Session.id)
+        )
+        return len(result.scalars().all())

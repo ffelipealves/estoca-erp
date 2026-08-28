@@ -1,3 +1,4 @@
+import secrets
 from collections.abc import Awaitable, Callable
 from typing import Annotated
 from uuid import UUID
@@ -96,3 +97,14 @@ def require_role(
 
 
 AdminUser = Annotated[DemoUser, Depends(require_role(UserRole.admin))]
+
+
+async def verify_cron_secret(
+    x_cron_secret: Annotated[str | None, Header(alias="X-Cron-Secret")] = None,
+) -> None:
+    expected_secret = settings.cron_secret.get_secret_value()
+    if not secrets.compare_digest(x_cron_secret or "", expected_secret):
+        raise AuthorizationError("Segredo do cron inválido")
+
+
+CronAuthorized = Annotated[None, Depends(verify_cron_secret)]

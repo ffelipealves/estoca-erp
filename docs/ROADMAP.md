@@ -4,7 +4,7 @@ Cronograma de 14 dias, part-time, a partir de 2026-08-25. Cada dia deste roadmap
 
 ## Status atual
 
-**Dias 1 a 8 — concluídos.** Checkpoint da semana 1 alcançado: base FastAPI/PostgreSQL em Docker, sessões isoladas, autenticação/RBAC e CRUDs completos de categorias e produtos. Movimentações têm criação para admin e operador, listagem paginada, entrada, saída, ajuste absoluto, saldo insuficiente e teto de 500; locks por sessão e produto mantêm limite, saldo e histórico coerentes sob concorrência. Próximo incremento: iniciar endpoints internos de limpeza e finalizar o Dockerfile do Dia 9.
+**Dias 1 a 8 — concluídos; Dia 9 — em andamento.** Checkpoint da semana 1 alcançado: sessões isoladas, autenticação/RBAC e CRUDs completos de categorias, produtos e movimentações. A limpeza interna de sessões expiradas já exige `X-Cron-Secret`, remove por inatividade ou idade máxima com um único `DELETE` em `sessions` e confia o restante ao cascade do PostgreSQL. Próximo incremento: limpeza total diária, testes correspondentes e validação final da imagem de produção.
 
 ## Dias
 
