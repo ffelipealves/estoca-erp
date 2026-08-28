@@ -4,7 +4,7 @@ Cronograma de 14 dias, part-time, a partir de 2026-08-25. Cada dia deste roadmap
 
 ## Status atual
 
-**Dias 1 a 4 — concluídos.** Base FastAPI/PostgreSQL em Docker, models e migration inicial, configuração tipada, SQLAlchemy assíncrono, bcrypt, JWT e erros de domínio. Pytest/HTTPX rodam contra o PostgreSQL real `estoca_test`. Sessões agora têm ciclo de vida completo, seed idempotente, cookie com fallback por `X-Session-Id`, endpoints de bootstrap/informação e teste dedicado que prova o isolamento de catálogo entre dois clientes.
+**Dias 1 a 4 — concluídos; Dia 5 — em andamento.** Base FastAPI/PostgreSQL em Docker, models e migration inicial, configuração tipada, SQLAlchemy assíncrono e testes contra o PostgreSQL real `estoca_test`. Sessões têm bootstrap, seed idempotente, cookie/header e isolamento provado. Login bcrypt/JWT já funciona para os dois usuários demo; token, usuário e papel são revalidados dentro da sessão atual, com dependency reutilizável de RBAC. Falta aplicar a autorização ao reset administrativo antes de encerrar o dia.
 
 ## Dias
 

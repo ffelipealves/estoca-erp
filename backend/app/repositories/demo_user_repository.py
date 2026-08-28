@@ -28,6 +28,15 @@ class DemoUserRepository:
         )
         return result.scalar_one_or_none()
 
+    async def get_by_id(self, session_id: UUID, user_id: UUID) -> DemoUser | None:
+        result = await self.db.execute(
+            select(DemoUser).where(
+                DemoUser.session_id == session_id,
+                DemoUser.id == user_id,
+            )
+        )
+        return result.scalar_one_or_none()
+
     async def list_by_session(self, session_id: UUID) -> list[DemoUser]:
         result = await self.db.scalars(
             select(DemoUser)
