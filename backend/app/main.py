@@ -4,6 +4,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.core.config import settings
 from app.core.errors import DomainError, domain_error_handler
 from app.routers.auth import router as auth_router
+from app.routers.categories import router as categories_router
 from app.routers.sessions import router as sessions_router
 
 app = FastAPI(title=settings.app_name)
@@ -16,6 +17,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 app.include_router(auth_router, prefix="/api/v1")
+app.include_router(categories_router, prefix="/api/v1")
 app.include_router(sessions_router, prefix="/api/v1")
 
 

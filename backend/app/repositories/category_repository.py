@@ -27,6 +27,43 @@ class CategoryRepository:
         )
         return list(result)
 
+    async def get_by_id(
+        self,
+        session_id: UUID,
+        category_id: UUID,
+    ) -> Category | None:
+        result = await self.db.execute(
+            select(Category).where(
+                Category.session_id == session_id,
+                Category.id == category_id,
+            )
+        )
+        return result.scalar_one_or_none()
+
+    async def get_by_name(
+        self,
+        session_id: UUID,
+        name: str,
+    ) -> Category | None:
+        result = await self.db.execute(
+            select(Category).where(
+                Category.session_id == session_id,
+                Category.name == name,
+            )
+        )
+        return result.scalar_one_or_none()
+
+    async def create(self, category: Category) -> Category:
+        self.db.add(category)
+        await self.db.flush()
+        await self.db.refresh(category)
+        return category
+
+    async def save(self, category: Category) -> Category:
+        await self.db.flush()
+        await self.db.refresh(category)
+        return category
+
     async def create_many(self, categories: Sequence[Category]) -> list[Category]:
         self.db.add_all(categories)
         await self.db.flush()
