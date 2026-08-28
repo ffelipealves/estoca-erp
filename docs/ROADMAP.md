@@ -4,7 +4,7 @@ Cronograma de 14 dias, part-time, a partir de 2026-08-25. Cada dia deste roadmap
 
 ## Status atual
 
-**Dias 1 a 10 — concluídos; Dia 11 — em andamento.** O backend está publicado em `https://estoca-api.onrender.com`, usando Neon em produção. O frontend foi iniciado com Next.js 16, TypeScript, App Router, Tailwind CSS e uma etapa própria na CI. Próximo incremento: implementar `lib/api.ts` e o `SessionProvider` com bootstrap, fallback `X-Session-Id` e estado de espera para o cold start.
+**Dias 1 a 11 — concluídos.** O backend está publicado em `https://estoca-api.onrender.com`, usando Neon em produção. O frontend usa Next.js 16, TypeScript, App Router e Tailwind CSS, com CI própria. O bootstrap cria e persiste a sessão isolada, o cliente envia o fallback `X-Session-Id` e o token Bearer, e a tela de login mantém o usuário autenticado durante a aba da demonstração. Próximo incremento: iniciar o Dia 12 com o shell responsivo da aplicação.
 
 ## Dias
 

@@ -1,4 +1,9 @@
 import type { Metadata } from "next";
+
+import { SessionGate } from "@/components/session/SessionGate";
+import { AuthProvider } from "@/context/AuthProvider";
+import { SessionProvider } from "@/context/SessionProvider";
+
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -9,7 +14,13 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html lang="pt-BR">
-      <body>{children}</body>
+      <body>
+        <SessionProvider>
+          <SessionGate>
+            <AuthProvider>{children}</AuthProvider>
+          </SessionGate>
+        </SessionProvider>
+      </body>
     </html>
   );
 }
