@@ -113,7 +113,7 @@ Serviços padrão: `postgres:16-alpine` + `backend` (`uvicorn --reload`, volume 
 
 ## GitHub Actions
 
-- **`ci.yml`** (`pull_request` + `push: main` + `workflow_dispatch`): job `backend` (Python 3.12, Postgres de serviço, validação do Poetry, `alembic upgrade head`, `ruff check/format`, `pytest --cov` e build da imagem de produção). O job de frontend entra quando o projeto Next.js existir.
+- **`ci.yml`** (`pull_request` + `push: main` + `workflow_dispatch`): job `backend` (Python 3.12, Postgres de serviço, validação do Poetry, `alembic upgrade head`, `ruff check/format`, `pytest --cov` e build da imagem de produção) e job `frontend` (Node 24, `npm ci`, ESLint e build Next.js).
 - **`cron-cleanup-expired.yml`**: `schedule: */15 * * * *` + `workflow_dispatch` → `curl -sf -X POST $BACKEND_URL/internal/cleanup/expired -H "X-Cron-Secret: ${{ secrets.CRON_SECRET }}"`.
 - **`cron-wipe-daily.yml`**: `schedule: 0 7 * * *` (UTC) → mesmo padrão em `/internal/cleanup/wipe-all`.
 - Sem workflow de deploy: Vercel (root `frontend/`) e Render fazem auto-deploy nativo no push para `main`. O Blueprint `render.yaml` cria o Web Service Docker gratuito com root `backend/` e health check em `/healthz`; o `CMD` da imagem aplica `alembic upgrade head` e inicia o Uvicorn em `$PORT`.

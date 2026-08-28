@@ -4,7 +4,7 @@ Cronograma de 14 dias, part-time, a partir de 2026-08-25. Cada dia deste roadmap
 
 ## Status atual
 
-**Dias 1 a 10 — concluídos.** Checkpoint da semana 1 alcançado: sessões isoladas, autenticação/RBAC e CRUDs completos de categorias, produtos e movimentações. Endpoints internos protegidos por `X-Cron-Secret` removem sessões expiradas ou todas as sessões usando apenas `DELETE` em `sessions`, com cascade validado. A CI está verde e o backend está publicado em `https://estoca-api.onrender.com`, usando Neon em produção. O smoke test remoto validou health check, migrations, bootstrap, fallback por header, login e catálogo seedado. Próximo incremento: iniciar o frontend Next.js do Dia 11.
+**Dias 1 a 10 — concluídos; Dia 11 — em andamento.** O backend está publicado em `https://estoca-api.onrender.com`, usando Neon em produção. O frontend foi iniciado com Next.js 16, TypeScript, App Router, Tailwind CSS e uma etapa própria na CI. Próximo incremento: implementar `lib/api.ts` e o `SessionProvider` com bootstrap, fallback `X-Session-Id` e estado de espera para o cold start.
 
 ## Dias
 
