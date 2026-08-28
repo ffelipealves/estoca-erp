@@ -1,8 +1,0 @@
-fastapi
-uvicorn[standard]
-sqlalchemy[asyncio]
-asyncpg
-alembic
-pydantic-settings
-pwdlib[bcrypt]
-PyJWT

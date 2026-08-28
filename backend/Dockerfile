@@ -5,14 +5,27 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 
 WORKDIR /app
 
-COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+
+FROM base AS builder
+
+ARG POETRY_VERSION=2.4.1
+
+RUN pip install --no-cache-dir "poetry==${POETRY_VERSION}"
+
+ENV POETRY_NO_INTERACTION=1 \
+    POETRY_VIRTUALENVS_CREATE=false \
+    VIRTUAL_ENV=/opt/venv \
+    PATH="/opt/venv/bin:${PATH}"
+
+RUN python -m venv "${VIRTUAL_ENV}"
+
+COPY pyproject.toml poetry.lock ./
+RUN poetry sync --only main --no-root
 
 
-FROM base AS development
+FROM builder AS development
 
-COPY requirements-dev.txt .
-RUN pip install --no-cache-dir -r requirements-dev.txt
+RUN poetry sync --with dev --no-root
 
 COPY . .
 
@@ -21,6 +34,10 @@ CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
 
 FROM base AS production
 
+ENV VIRTUAL_ENV=/opt/venv \
+    PATH="/opt/venv/bin:${PATH}"
+
+COPY --from=builder /opt/venv /opt/venv
 COPY . .
 
 CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
