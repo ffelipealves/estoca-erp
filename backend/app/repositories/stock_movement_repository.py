@@ -1,3 +1,4 @@
+from collections.abc import Sequence
 from uuid import UUID
 
 from sqlalchemy import delete, func, select
@@ -38,6 +39,14 @@ class StockMovementRepository:
         await self.db.flush()
         await self.db.refresh(movement)
         return movement
+
+    async def create_many(
+        self,
+        movements: Sequence[StockMovement],
+    ) -> list[StockMovement]:
+        self.db.add_all(movements)
+        await self.db.flush()
+        return list(movements)
 
     async def delete_by_session(self, session_id: UUID) -> None:
         await self.db.execute(

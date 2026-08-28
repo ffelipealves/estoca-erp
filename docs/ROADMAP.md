@@ -4,7 +4,7 @@ Cronograma de 14 dias, part-time, a partir de 2026-08-25. Cada dia deste roadmap
 
 ## Status atual
 
-**Dias 1 a 7 — concluídos.** Checkpoint da semana 1 alcançado: base FastAPI/PostgreSQL em Docker, dependências reproduzíveis com Poetry, sessões isoladas com seed/reset, login bcrypt/JWT, RBAC e CRUDs completos de categorias e produtos. Produtos têm filtros, SKU único por sessão, teto de 50 e estoque inicial registrado como movimentação; edição rejeita alterações diretas de saldo e exclusão remove seu histórico por cascade. Próximo incremento: iniciar as regras completas de movimentação do Dia 8.
+**Dias 1 a 7 — concluídos; Dia 8 — em andamento.** Checkpoint da semana 1 alcançado: base FastAPI/PostgreSQL em Docker, sessões isoladas, autenticação/RBAC e CRUDs completos de categorias e produtos. O núcleo transacional de movimentações já implementa entrada, saída, ajuste absoluto, saldo insuficiente e teto de 500; locks por sessão e produto mantêm limite, saldo e histórico coerentes sob concorrência. Próximo incremento: schemas e endpoints paginados de movimentações para admin e operador.
 
 ## Dias
 

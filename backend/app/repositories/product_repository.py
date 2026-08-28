@@ -78,6 +78,21 @@ class ProductRepository:
         )
         return result.scalar_one_or_none()
 
+    async def get_by_id_for_update(
+        self,
+        session_id: UUID,
+        product_id: UUID,
+    ) -> Product | None:
+        result = await self.db.execute(
+            select(Product)
+            .where(
+                Product.session_id == session_id,
+                Product.id == product_id,
+            )
+            .with_for_update()
+        )
+        return result.scalar_one_or_none()
+
     async def get_by_sku(self, session_id: UUID, sku: str) -> Product | None:
         result = await self.db.execute(
             select(Product).where(

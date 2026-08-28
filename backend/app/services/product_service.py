@@ -62,6 +62,9 @@ class ProductService:
         if await self.products.get_by_sku(session_id, sku) is not None:
             raise ConflictError("Já existe um produto com este SKU")
 
+        if initial_quantity > 0:
+            await self.stock_movements.ensure_capacity(session_id)
+
         product = await self.products.create(
             Product(
                 session_id=session_id,
