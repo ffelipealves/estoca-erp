@@ -1,6 +1,10 @@
 # Estoca
 
-Mini ERP de estoque de portfólio. Cada visitante recebe uma sessão isolada (sandbox) para mexer em produtos, categorias e movimentações de estoque — a sessão expira e é resetada automaticamente, então a demo está sempre "zerada" para o próximo visitante.
+Mini ERP de estoque de portfólio. Cada visitante recebe uma sessão isolada
+(sandbox) para mexer em produtos, categorias e movimentações de estoque. Quando
+a sessão expira, uma próxima visita recebe uma sandbox nova e isolada. Os
+endpoints que removem sessões antigas já existem; o agendamento automático dessa
+limpeza será ativado no Dia 13.
 
 **Stack:** FastAPI + SQLAlchemy (async) + Alembic + Poetry · Next.js + TypeScript · PostgreSQL · Docker
 
