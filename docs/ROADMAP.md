@@ -4,7 +4,7 @@ Cronograma de 14 dias, part-time, a partir de 2026-08-25. Cada dia deste roadmap
 
 ## Status atual
 
-**Dias 1 a 11 — concluídos. Dia 12 — em validação.** O backend está publicado em `https://estoca-api.onrender.com`, usando Neon em produção. O frontend usa Next.js 16, TypeScript, App Router e Tailwind CSS, com CI própria. O bootstrap cria e persiste a sessão isolada, o cliente envia o fallback `X-Session-Id` e o token Bearer, e a tela de login mantém o usuário autenticado durante a aba da demonstração. O shell autenticado responsivo e o CRUD visual de produtos e categorias estão implementados com mutações restritas a administrador; criação e edição de produto preservam a regra de que o saldo só muda via movimentação, e categorias com produtos vinculados não oferecem exclusão. Próximo incremento: validar o CRUD completo ponta a ponta no navegador e corrigir eventuais falhas antes de concluir o Dia 12.
+**Dias 1 a 12 — concluídos.** O backend está publicado em `https://estoca-api.onrender.com`, usando Neon em produção. O frontend usa Next.js 16, TypeScript, App Router e Tailwind CSS, com CI própria. O bootstrap cria e persiste a sessão isolada, o cliente envia o fallback `X-Session-Id` e o token Bearer, e a tela de login mantém o usuário autenticado durante a aba da demonstração. O shell autenticado responsivo e o CRUD visual de produtos e categorias foram validados ponta a ponta no navegador com os perfis administrador e operador; criação e edição de produto preservam a regra de que o saldo só muda via movimentação, e categorias com produtos vinculados não oferecem exclusão. Próximo incremento: iniciar o Dia 13 com a lista de movimentações de estoque.
 
 ## Dias
 
