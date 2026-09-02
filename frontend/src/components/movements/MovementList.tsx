@@ -21,6 +21,12 @@ const movementLabels: Record<StockMovementType, string> = {
   saida: "Saída",
 };
 
+const movementCreatedLabels: Record<StockMovementType, string> = {
+  ajuste: "Ajuste registrado",
+  entrada: "Entrada registrada",
+  saida: "Saída registrada",
+};
+
 function describeError(error: unknown): string {
   if (error instanceof ApiError) return error.message;
   return "Não foi possível carregar as movimentações. Verifique a conexão e tente novamente.";
@@ -103,7 +109,7 @@ export function MovementList() {
     setProductId("");
     setShowCreateForm(false);
     setSuccessMessage(
-      `${movementLabels[movement.type]} registrada. Saldo final: ${movement.resulting_quantity}.`,
+      `${movementCreatedLabels[movement.type]}. Saldo final: ${movement.resulting_quantity}.`,
     );
     setIsLoading(true);
     setRequestKey((current) => current + 1);

@@ -4,7 +4,7 @@ Cronograma de 14 dias, part-time, a partir de 2026-08-25. Cada dia deste roadmap
 
 ## Status atual
 
-**Dias 1 a 12 — concluídos. Dia 13 — em andamento.** O backend está publicado em `https://estoca-api.onrender.com`, usando Neon em produção. O frontend usa Next.js 16, TypeScript, App Router e Tailwind CSS, com CI própria, mas ainda não possui deploy ou domínio na Vercel. O CRUD visual do catálogo está completo. A área de movimentações lista o histórico paginado, filtra por produto e permite que administrador ou operador registrem entrada, saída e ajuste com prévia do saldo; ajuste mantém a semântica de quantidade final absoluta. Os workflows agendados de limpeza seguem pendentes. Próximo incremento: validar o fluxo de movimentações ponta a ponta no navegador antes de preparar Vercel e crons.
+**Dias 1 a 12 — concluídos. Dia 13 — em andamento.** O backend está publicado em `https://estoca-api.onrender.com`, usando Neon em produção. O frontend usa Next.js 16, TypeScript, App Router e Tailwind CSS, com CI própria, mas ainda não possui deploy ou domínio na Vercel. O CRUD visual do catálogo está completo. A área de movimentações lista o histórico paginado, filtra por produto e permite que administrador ou operador registrem entrada, saída e ajuste com prévia do saldo; ajuste mantém a semântica de quantidade final absoluta. O fluxo foi validado localmente no navegador, como operador e contra o backend de produção: entrada, bloqueio de saída sem saldo, saída válida, ajuste absoluto e atualização do saldo no catálogo passaram sem erros no console. Os workflows agendados de limpeza seguem pendentes. Próximo incremento: preparar o deploy do frontend na Vercel e os crons de limpeza antes da validação final nos domínios de produção.
 
 ## Dias
 

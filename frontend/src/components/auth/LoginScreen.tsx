@@ -77,8 +77,8 @@ export function LoginScreen() {
             Entre e experimente o estoque sem medo.
           </h1>
           <p className="mt-6 max-w-md text-lg leading-8 text-slate-800">
-            Os dados desta visita pertencem somente à sua sessão e serão limpos
-            automaticamente depois que ela expirar.
+            Os dados desta visita ficam isolados na sua sessão. Cada nova visita
+            começa em uma sandbox própria, sem acessar dados anteriores.
           </p>
         </div>
 
