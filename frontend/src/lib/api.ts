@@ -36,6 +36,25 @@ export interface AuthSession {
   user: AuthUser;
 }
 
+export interface Category {
+  id: string;
+  name: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface Product {
+  id: string;
+  category_id: string;
+  name: string;
+  sku: string;
+  price: string;
+  quantity: number;
+  low_stock_threshold: number;
+  created_at: string;
+  updated_at: string;
+}
+
 export class ApiError extends Error {
   constructor(
     message: string,
@@ -178,4 +197,12 @@ export function login(
     body: JSON.stringify({ email, password }),
     method: "POST",
   });
+}
+
+export function listCategories(signal?: AbortSignal): Promise<Category[]> {
+  return apiRequest<Category[]>("/api/v1/categories", { signal });
+}
+
+export function listProducts(signal?: AbortSignal): Promise<Product[]> {
+  return apiRequest<Product[]>("/api/v1/products", { signal });
 }

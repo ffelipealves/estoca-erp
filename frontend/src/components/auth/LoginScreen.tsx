@@ -2,6 +2,7 @@
 
 import { useState, type FormEvent } from "react";
 
+import { AppShell } from "@/components/layout/AppShell";
 import { useAuth } from "@/context/AuthProvider";
 import { ApiError } from "@/lib/api";
 
@@ -29,7 +30,7 @@ function describeLoginError(error: unknown): string {
 }
 
 export function LoginScreen() {
-  const { isRestoring, isSubmitting, login, logout, user } = useAuth();
+  const { isRestoring, isSubmitting, login, user } = useAuth();
   const [email, setEmail] = useState<string>(DEMO_USERS[0].email);
   const [password, setPassword] = useState<string>(DEMO_PASSWORD);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -56,38 +57,7 @@ export function LoginScreen() {
   }
 
   if (user) {
-    return (
-      <main className="flex min-h-screen items-center justify-center bg-slate-950 px-6 py-16 text-slate-100">
-        <section className="w-full max-w-xl rounded-3xl border border-emerald-400/20 bg-slate-900 p-8 shadow-2xl shadow-emerald-950/30 sm:p-12">
-          <div className="flex size-14 items-center justify-center rounded-2xl bg-emerald-400 text-2xl font-black text-slate-950">
-            {user.full_name.charAt(0)}
-          </div>
-          <p className="mt-8 text-sm font-semibold uppercase tracking-[0.22em] text-emerald-400">
-            Acesso confirmado
-          </p>
-          <h1 className="mt-3 text-4xl font-bold tracking-tight">
-            Olá, {user.full_name}
-          </h1>
-          <p className="mt-4 leading-7 text-slate-300">
-            Você entrou como <strong className="text-slate-100">{user.role}</strong>.
-            No próximo incremento, esta área receberá a navegação e a lista de
-            categorias e produtos.
-          </p>
-          <div className="mt-8 flex flex-wrap items-center gap-4">
-            <span className="rounded-full border border-slate-700 px-4 py-2 text-sm text-slate-300">
-              {user.email}
-            </span>
-            <button
-              className="text-sm font-semibold text-slate-400 transition hover:text-slate-100 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-emerald-400"
-              onClick={logout}
-              type="button"
-            >
-              Trocar usuário
-            </button>
-          </div>
-        </section>
-      </main>
-    );
+    return <AppShell />;
   }
 
   return (
