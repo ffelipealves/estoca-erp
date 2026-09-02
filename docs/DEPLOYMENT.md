@@ -1,18 +1,21 @@
 # Deploy do Estoca
 
 O ambiente gratuito de produção usa Neon para PostgreSQL e Render para a API.
-O frontend será publicado na Vercel quando existir. Nenhum dos passos abaixo
-exige cartão de crédito.
+O frontend já existe, mas ainda não foi publicado; o alvo continua sendo a
+Vercel no Dia 13. Nenhum dos provedores escolhidos exige cartão de crédito.
 
 ## Ambiente atual
 
 - API: `https://estoca-api.onrender.com`
 - Health check: `https://estoca-api.onrender.com/healthz`
 - Banco: projeto `estoca-erp`, branch `production`, banco `neondb` no Neon
-- Deploy: Blueprint `estoca-erp`, serviço Docker Free `estoca-api` no Render
+- Backend: Blueprint `estoca-erp`, serviço Docker Free `estoca-api` no Render
+- Frontend: somente local/CI; sem projeto ou domínio Vercel documentado
+- Automações de limpeza: endpoints prontos, workflows agendados ainda pendentes
 
-O primeiro deploy e o fluxo bootstrap → sessão → login → catálogo foram
-validados em produção.
+O backend foi validado em produção. O fluxo bootstrap → sessão → login → CRUD
+de catálogo foi validado com o frontend local consumindo a API publicada; isso
+não equivale a uma validação do frontend em produção.
 
 ## 1. Banco no Neon
 
@@ -55,3 +58,30 @@ frontend, adicione-o a `CORS_ORIGINS`, separado por vírgula.
 | `SESSION_COOKIE_SAMESITE` | Blueprint | `none` para frontend e API em domínios distintos. |
 | `JWT_SECRET` | Render | Gerado automaticamente. |
 | `CRON_SECRET` | Usuário | Mesmo valor será cadastrado no GitHub. |
+
+## 3. Frontend na Vercel — pendente
+
+Quando a interface de movimentações estiver pronta:
+
+1. Importe o repositório na Vercel e defina `frontend/` como **Root Directory**.
+2. Mantenha o preset Next.js e o comando de build padrão (`npm run build`).
+3. Cadastre `NEXT_PUBLIC_API_URL=https://estoca-api.onrender.com` para produção.
+4. Faça o primeiro deploy e copie o domínio HTTPS gerado pela Vercel.
+5. No Render, atualize `CORS_ORIGINS` para conter
+   `http://localhost:3000,<domínio-vercel>` e faça o redeploy da API.
+6. Valide bootstrap, login, CRUD e movimentações em Chrome e Safari/iOS. Essa
+   validação precisa confirmar o fallback `X-Session-Id`, não apenas o cookie.
+
+Vercel e Render fazem auto-deploy a partir de `main` somente depois que cada
+projeto está efetivamente conectado ao repositório. No estado atual, isso vale
+para o Render, mas ainda não para a Vercel.
+
+## 4. GitHub Actions de limpeza — pendente
+
+O repositório contém apenas `.github/workflows/ci.yml`. No Dia 13 ainda devem ser
+adicionados os workflows de limpeza expirada e limpeza diária, ambos com
+`workflow_dispatch`. Eles usarão:
+
+- variável de repositório `BACKEND_URL=https://estoca-api.onrender.com`;
+- secret `CRON_SECRET`, com o mesmo valor cadastrado no Render;
+- header `X-Cron-Secret` nas chamadas aos endpoints internos.

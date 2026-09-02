@@ -15,7 +15,16 @@ Invariantes cross-cutting (isolamento por sessão, quem escreve `product.quantit
 
 ## Frontend
 
-Next.js App Router. `app/` só páginas e composição; lógica de fetch/estado de sessão em `context/SessionProvider.tsx` e `lib/api.ts`; componentes de UI reutilizáveis em `components/<domínio>/`.
+Next.js App Router. `app/` contém página, layout e estilos globais;
+`context/SessionProvider.tsx` controla bootstrap/cold start e
+`context/AuthProvider.tsx` restaura o login durante a aba. `lib/api.ts` centraliza
+cookie, fallback `X-Session-Id`, Bearer token e contratos HTTP.
+
+O shell autenticado está em `components/layout/AppShell.tsx`. Produtos e
+categorias possuem componentes próprios com estados de carregamento, erro e
+vazio, além de mutações visíveis somente para administrador. O saldo do produto
+é apenas exibido: nenhuma tela de catálogo escreve `quantity`; a quantidade
+inicial e as movimentações continuam passando pelo backend.
 
 ## Modelo de dados
 
@@ -103,22 +112,35 @@ Prefixo `/api/v1`; limpeza interna em `/internal` (`include_in_schema=False`).
 - Produtos: `GET/POST /products` (filtros `category_id`, `search`, `low_stock`; teto de 50/sessão; sku único por sessão), `GET/PUT/DELETE /products/{id}` — mutação **admin only**.
 - Movimentações: `GET /stock-movements` (paginado), `POST /stock-movements` — **admin e operador**; teto de 500/sessão.
 
-**Dashboard (sprint 2)**: `GET /dashboard/summary`, `GET /dashboard/turnover`.
+**Dashboard (sprint 2, ainda não implementado)**: endpoints de resumo e giro
+serão definidos somente se essa etapa entrar no escopo do Dia 14.
 
 **Interno** (sem JWT, header `X-Cron-Secret` via `secrets.compare_digest`): `POST /internal/cleanup/expired`, `POST /internal/cleanup/wipe-all`. Mais `GET /healthz` público.
 
 ## `docker-compose.yml` (dev local)
 
-Serviços padrão: `postgres:16-alpine` + `backend` (`uvicorn --reload`, volume montado). `frontend` atrás de um profile `full` — no dia a dia roda `npm run dev` direto no host (HMR mais rápido); `docker compose --profile full up` só quando quiser tudo containerizado. Backend usa `DATABASE_URL=postgresql+asyncpg://estoca:estoca@postgres:5432/estoca`; em dev, `SESSION_COOKIE_SECURE=false` / `SAMESITE=lax`. Banco de teste (`estoca_test`) criado uma vez no mesmo Postgres.
+Serviços existentes: `postgres:16-alpine` + `backend` (`uvicorn --reload`, volume
+montado). O frontend não faz parte do Compose e roda com `npm run dev` no host.
+O backend usa `DATABASE_URL=postgresql+asyncpg://estoca:estoca@postgres:5432/estoca`;
+em dev, `SESSION_COOKIE_SECURE=false` / `SAMESITE=lax`. O banco de teste
+`estoca_test` é criado pelo script montado em `docker-entrypoint-initdb.d`.
 
 ## GitHub Actions
 
 - **`ci.yml`** (`pull_request` + `push: main` + `workflow_dispatch`): job `backend` (Python 3.12, Postgres de serviço, validação do Poetry, `alembic upgrade head`, `ruff check/format`, `pytest --cov` e build da imagem de produção) e job `frontend` (Node 24, `npm ci`, ESLint e build Next.js).
-- **`cron-cleanup-expired.yml`**: `schedule: */15 * * * *` + `workflow_dispatch` → `curl -sf -X POST $BACKEND_URL/internal/cleanup/expired -H "X-Cron-Secret: ${{ secrets.CRON_SECRET }}"`.
-- **`cron-wipe-daily.yml`**: `schedule: 0 7 * * *` (UTC) → mesmo padrão em `/internal/cleanup/wipe-all`.
-- Sem workflow de deploy: Vercel (root `frontend/`) e Render fazem auto-deploy nativo no push para `main`. O Blueprint `render.yaml` cria o Web Service Docker gratuito com root `backend/` e health check em `/healthz`; o `CMD` da imagem aplica `alembic upgrade head` e inicia o Uvicorn em `$PORT`.
+- Hoje existe apenas **`ci.yml`**. Os workflows agendados de limpeza ainda não
+  foram criados; são parte do checkpoint do Dia 13 e deverão chamar
+  `/internal/cleanup/expired` e `/internal/cleanup/wipe-all` com
+  `X-Cron-Secret` e suporte a `workflow_dispatch`.
+- Não há workflow de deploy. O Blueprint `render.yaml` descreve o Web Service
+  Docker gratuito com root `backend/` e health check em `/healthz`; o Render
+  faz auto-deploy do backend quando conectado ao repositório. A Vercel ainda
+  não está conectada e não existe deploy público do frontend.
 - O `DATABASE_URL` pode receber diretamente a connection string do Neon. A configuração troca o dialect para `postgresql+asyncpg`, converte `sslmode` para o parâmetro `ssl` do asyncpg e descarta `channel_binding`, que não é aceito pelo driver.
-- Secrets: `CRON_SECRET` (mesmo valor no GitHub e no Render), `JWT_SECRET` — gerar com `openssl rand -hex 32`. Variável de repo `BACKEND_URL`.
+- Estado atual de configuração: o Render gera `JWT_SECRET` e recebe
+  `CRON_SECRET` manualmente. Quando os workflows de limpeza forem criados, o
+  GitHub receberá o mesmo `CRON_SECRET` como secret e `BACKEND_URL` como variável
+  de repositório.
 
 ## Testes
 
