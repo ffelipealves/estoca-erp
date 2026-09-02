@@ -55,6 +55,17 @@ export interface Product {
   updated_at: string;
 }
 
+export interface ProductCreateInput {
+  category_id: string;
+  name: string;
+  sku: string;
+  price: string;
+  initial_quantity: number;
+  low_stock_threshold: number;
+}
+
+export type ProductUpdateInput = Omit<ProductCreateInput, "initial_quantity">;
+
 export class ApiError extends Error {
   constructor(
     message: string,
@@ -203,6 +214,49 @@ export function listCategories(signal?: AbortSignal): Promise<Category[]> {
   return apiRequest<Category[]>("/api/v1/categories", { signal });
 }
 
+export function createCategory(name: string): Promise<Category> {
+  return apiRequest<Category>("/api/v1/categories", {
+    body: JSON.stringify({ name }),
+    method: "POST",
+  });
+}
+
+export function updateCategory(categoryId: string, name: string): Promise<Category> {
+  return apiRequest<Category>(`/api/v1/categories/${categoryId}`, {
+    body: JSON.stringify({ name }),
+    method: "PUT",
+  });
+}
+
+export function deleteCategory(categoryId: string): Promise<void> {
+  return apiRequest<void>(`/api/v1/categories/${categoryId}`, {
+    method: "DELETE",
+  });
+}
+
 export function listProducts(signal?: AbortSignal): Promise<Product[]> {
   return apiRequest<Product[]>("/api/v1/products", { signal });
+}
+
+export function createProduct(payload: ProductCreateInput): Promise<Product> {
+  return apiRequest<Product>("/api/v1/products", {
+    body: JSON.stringify(payload),
+    method: "POST",
+  });
+}
+
+export function updateProduct(
+  productId: string,
+  payload: ProductUpdateInput,
+): Promise<Product> {
+  return apiRequest<Product>(`/api/v1/products/${productId}`, {
+    body: JSON.stringify(payload),
+    method: "PUT",
+  });
+}
+
+export function deleteProduct(productId: string): Promise<void> {
+  return apiRequest<void>(`/api/v1/products/${productId}`, {
+    method: "DELETE",
+  });
 }

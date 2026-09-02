@@ -2,6 +2,7 @@
 
 import { useEffect, useState, type ReactNode } from "react";
 
+import { CategoryPanel } from "@/components/categories/CategoryPanel";
 import { ProductList } from "@/components/products/ProductList";
 import { useAuth } from "@/context/AuthProvider";
 import { useSession } from "@/context/SessionProvider";
@@ -93,24 +94,6 @@ function formatExpiration(expiresAt: string | null): string {
     hour: "2-digit",
     minute: "2-digit",
   }).format(new Date(expiresAt))}`;
-}
-
-function Barcode() {
-  return (
-    <svg aria-hidden="true" className="h-10 w-24 text-stone-900" viewBox="0 0 96 40">
-      {[2, 7, 12, 18, 21, 28, 34, 38, 45, 51, 54, 61, 68, 72, 79, 84, 91].map(
-        (x, index) => (
-          <rect
-            fill="currentColor"
-            height={index % 3 === 0 ? 40 : 33}
-            key={x}
-            width={index % 2 === 0 ? 2 : 4}
-            x={x}
-          />
-        ),
-      )}
-    </svg>
-  );
 }
 
 export function AppShell() {
@@ -311,44 +294,7 @@ export function AppShell() {
               ) : null}
             </div>
 
-            {activeSection === "products" ? <ProductList /> : (
-              <section className="mt-8 overflow-hidden rounded-2xl border border-stone-300 bg-[#fffdf8] shadow-[0_16px_45px_rgba(46,52,48,0.06)]">
-              <div className="flex items-center justify-between border-b border-dashed border-stone-300 bg-stone-100/70 px-5 py-3">
-                <span className="font-mono text-[10px] font-semibold uppercase tracking-[0.17em] text-stone-500">
-                  Área de trabalho · {active.id === "products" ? "PRD" : "CAT"}-001
-                </span>
-                <span className="font-mono text-[10px] text-stone-400">ESTOCA / 2026</span>
-              </div>
-              <div className="grid min-h-[360px] place-items-center px-6 py-12 text-center">
-                <div className="max-w-md">
-                  <div className="mx-auto flex w-fit items-end gap-4 rounded-lg border border-stone-300 bg-white p-3 shadow-sm">
-                    <Barcode />
-                    <span className="pb-0.5 font-mono text-[9px] font-semibold uppercase leading-4 tracking-widest text-stone-500">
-                      sandbox
-                      <br />
-                      isolado
-                    </span>
-                  </div>
-                  <h2 className="mt-7 font-display text-3xl font-bold tracking-tight text-[#17201d]">
-                    Estrutura pronta para o catálogo
-                  </h2>
-                  <p className="mt-3 text-sm leading-6 text-stone-600">
-                    O shell responsivo está no lugar. Uma próxima etapa conecta esta área às categorias da sua sessão.
-                  </p>
-                  <div className="mt-6 flex flex-wrap justify-center gap-2">
-                    {["Responsivo", "Sessão isolada", roleLabel].map((label) => (
-                      <span
-                        className="rounded-full border border-stone-300 bg-stone-50 px-3 py-1.5 font-mono text-[10px] font-semibold uppercase tracking-wider text-stone-600"
-                        key={label}
-                      >
-                        {label}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-              </div>
-              </section>
-            )}
+            {activeSection === "products" ? <ProductList /> : <CategoryPanel />}
           </div>
         </main>
       </div>

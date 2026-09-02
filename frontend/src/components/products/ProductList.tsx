@@ -2,8 +2,11 @@
 
 import { useEffect, useMemo, useState } from "react";
 
+import { ProductForm } from "@/components/products/ProductForm";
+import { useAuth } from "@/context/AuthProvider";
 import {
   ApiError,
+  deleteProduct,
   listCategories,
   listProducts,
   type Category,
@@ -52,12 +55,19 @@ function ProductListSkeleton() {
 }
 
 export function ProductList() {
+  const { user } = useAuth();
   const [categories, setCategories] = useState<Category[]>([]);
+  const [actionError, setActionError] = useState<string | null>(null);
+  const [deletingProductId, setDeletingProductId] = useState<string | null>(null);
+  const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [products, setProducts] = useState<Product[]>([]);
   const [requestKey, setRequestKey] = useState(0);
   const [search, setSearch] = useState("");
+  const [showCreateForm, setShowCreateForm] = useState(false);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const [productToDelete, setProductToDelete] = useState<Product | null>(null);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -112,6 +122,45 @@ export function ProductList() {
     setRequestKey((current) => current + 1);
   }
 
+  function handleProductCreated(product: Product) {
+    setProducts((current) => [product, ...current]);
+    setSearch("");
+    setShowCreateForm(false);
+    setSuccessMessage(`${product.name} foi cadastrado no estoque.`);
+  }
+
+  function handleProductUpdated(product: Product) {
+    setProducts((current) =>
+      current.map((item) => (item.id === product.id ? product : item)),
+    );
+    setEditingProduct(null);
+    setSuccessMessage(`${product.name} foi atualizado.`);
+  }
+
+  async function handleDeleteProduct() {
+    if (!productToDelete) return;
+
+    setActionError(null);
+    setDeletingProductId(productToDelete.id);
+
+    try {
+      await deleteProduct(productToDelete.id);
+      setProducts((current) =>
+        current.filter((product) => product.id !== productToDelete.id),
+      );
+      setSuccessMessage(`${productToDelete.name} foi excluído do estoque.`);
+      setProductToDelete(null);
+    } catch (error: unknown) {
+      setActionError(
+        error instanceof ApiError
+          ? error.message
+          : "Não foi possível excluir o produto. Verifique a conexão e tente novamente.",
+      );
+    } finally {
+      setDeletingProductId(null);
+    }
+  }
+
   return (
     <section className="mt-8 overflow-hidden rounded-2xl border border-stone-300 bg-[#fffdf8] shadow-[0_16px_45px_rgba(46,52,48,0.06)]">
       <div className="flex flex-col gap-4 border-b border-dashed border-stone-300 bg-stone-100/70 px-5 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-6">
@@ -125,19 +174,100 @@ export function ProductList() {
               : `${products.length} ${products.length === 1 ? "item" : "itens"} · ${lowStockCount} abaixo do mínimo`}
           </p>
         </div>
-        <button
-          className="inline-flex h-9 items-center justify-center gap-2 self-start rounded-lg border border-stone-300 bg-white px-3 font-mono text-[10px] font-semibold uppercase tracking-wider text-stone-600 shadow-sm transition hover:border-stone-400 hover:text-stone-900 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700 disabled:cursor-wait disabled:opacity-50 sm:self-auto"
-          disabled={isLoading}
-          onClick={reloadProducts}
-          type="button"
-        >
-          <svg aria-hidden="true" className="size-3.5" fill="none" stroke="currentColor" strokeLinecap="round" strokeWidth="1.8" viewBox="0 0 24 24">
-            <path d="M20 7v5h-5M4 17v-5h5" />
-            <path d="M6.1 9a7 7 0 0 1 11.5-2L20 9M4 15l2.4 2A7 7 0 0 0 18 15" />
-          </svg>
-          Atualizar
-        </button>
+        <div className="flex flex-wrap gap-2 self-start sm:self-auto">
+          {user?.role === "admin" ? (
+            <button
+              aria-expanded={showCreateForm}
+              className="inline-flex h-9 items-center justify-center rounded-lg bg-[#17201d] px-4 font-mono text-[10px] font-semibold uppercase tracking-wider text-white shadow-[0_2px_0_#0f8a5f] transition hover:-translate-y-0.5 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700"
+              onClick={() => {
+                setSuccessMessage(null);
+                setActionError(null);
+                setEditingProduct(null);
+                setShowCreateForm((current) => !current);
+              }}
+              type="button"
+            >
+              {showCreateForm ? "Fechar ficha" : "+ Novo produto"}
+            </button>
+          ) : null}
+          <button
+            className="inline-flex h-9 items-center justify-center gap-2 rounded-lg border border-stone-300 bg-white px-3 font-mono text-[10px] font-semibold uppercase tracking-wider text-stone-600 shadow-sm transition hover:border-stone-400 hover:text-stone-900 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700 disabled:cursor-wait disabled:opacity-50"
+            disabled={isLoading}
+            onClick={reloadProducts}
+            type="button"
+          >
+            <svg aria-hidden="true" className="size-3.5" fill="none" stroke="currentColor" strokeLinecap="round" strokeWidth="1.8" viewBox="0 0 24 24">
+              <path d="M20 7v5h-5M4 17v-5h5" />
+              <path d="M6.1 9a7 7 0 0 1 11.5-2L20 9M4 15l2.4 2A7 7 0 0 0 18 15" />
+            </svg>
+            Atualizar
+          </button>
+        </div>
       </div>
+
+      {showCreateForm && user?.role === "admin" ? (
+        <ProductForm
+          categories={categories}
+          onCancel={() => setShowCreateForm(false)}
+          onSaved={handleProductCreated}
+        />
+      ) : null}
+
+      {editingProduct && user?.role === "admin" ? (
+        <ProductForm
+          categories={categories}
+          key={editingProduct.id}
+          onCancel={() => setEditingProduct(null)}
+          onSaved={handleProductUpdated}
+          product={editingProduct}
+        />
+      ) : null}
+
+      {productToDelete && user?.role === "admin" ? (
+        <div className="flex flex-col gap-4 border-b border-rose-200 bg-rose-50 px-5 py-5 sm:flex-row sm:items-center sm:justify-between sm:px-6">
+          <div>
+            <p className="font-mono text-[10px] font-semibold uppercase tracking-[0.17em] text-rose-700">
+              Baixa definitiva · {productToDelete.sku}
+            </p>
+            <p className="mt-1 text-sm font-semibold text-rose-950">
+              Excluir {productToDelete.name} e todo o histórico de movimentações vinculado?
+            </p>
+          </div>
+          <div className="flex shrink-0 flex-wrap gap-2">
+            <button
+              className="h-9 rounded-lg bg-rose-700 px-4 text-sm font-bold text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rose-700 disabled:cursor-wait disabled:opacity-60"
+              disabled={deletingProductId === productToDelete.id}
+              onClick={() => void handleDeleteProduct()}
+              type="button"
+            >
+              {deletingProductId === productToDelete.id ? "Excluindo..." : "Excluir produto"}
+            </button>
+            <button
+              className="h-9 px-3 text-sm font-semibold text-stone-600 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-stone-700"
+              disabled={deletingProductId === productToDelete.id}
+              onClick={() => setProductToDelete(null)}
+              type="button"
+            >
+              Cancelar
+            </button>
+          </div>
+        </div>
+      ) : null}
+
+      {actionError ? (
+        <div className="border-b border-rose-200 bg-rose-50 px-5 py-3 text-sm text-rose-800 sm:px-6" role="alert">
+          {actionError}
+        </div>
+      ) : null}
+
+      {successMessage ? (
+        <div
+          className="border-b border-emerald-200 bg-emerald-50 px-5 py-3 text-sm font-medium text-emerald-900 sm:px-6"
+          role="status"
+        >
+          {successMessage}
+        </div>
+      ) : null}
 
       {isLoading ? <ProductListSkeleton /> : null}
 
@@ -201,11 +331,12 @@ export function ProductList() {
 
           {visibleProducts.length > 0 ? (
             <div>
-              <div className="hidden grid-cols-[minmax(220px,2fr)_1fr_0.8fr_0.8fr] gap-5 border-b border-stone-200 bg-stone-50 px-6 py-3 font-mono text-[9px] font-semibold uppercase tracking-[0.16em] text-stone-500 md:grid">
+              <div className={`hidden gap-5 border-b border-stone-200 bg-stone-50 px-6 py-3 font-mono text-[9px] font-semibold uppercase tracking-[0.16em] text-stone-500 md:grid ${user?.role === "admin" ? "grid-cols-[minmax(220px,2fr)_1fr_0.8fr_0.8fr_auto]" : "grid-cols-[minmax(220px,2fr)_1fr_0.8fr_0.8fr]"}`}>
                 <span>Produto / SKU</span>
                 <span>Categoria</span>
                 <span>Preço</span>
                 <span>Saldo</span>
+                {user?.role === "admin" ? <span>Ações</span> : null}
               </div>
               <ul className="divide-y divide-stone-200">
                 {visibleProducts.map((product) => {
@@ -213,7 +344,7 @@ export function ProductList() {
                   const categoryName = categoriesById.get(product.category_id) ?? "Sem categoria";
 
                   return (
-                    <li className="grid gap-5 px-5 py-5 transition hover:bg-stone-50/80 sm:px-6 md:grid-cols-[minmax(220px,2fr)_1fr_0.8fr_0.8fr] md:items-center" key={product.id}>
+                    <li className={`grid gap-5 px-5 py-5 transition hover:bg-stone-50/80 sm:px-6 md:items-center ${user?.role === "admin" ? "md:grid-cols-[minmax(220px,2fr)_1fr_0.8fr_0.8fr_auto]" : "md:grid-cols-[minmax(220px,2fr)_1fr_0.8fr_0.8fr]"}`} key={product.id}>
                       <div className="flex min-w-0 items-center gap-3">
                         <span className="grid size-10 shrink-0 place-items-center rounded-lg border border-stone-300 bg-stone-100 font-display text-lg font-bold uppercase text-stone-600">
                           {product.name.slice(0, 2)}
@@ -243,6 +374,34 @@ export function ProductList() {
                         </div>
                         <p className="mt-1 text-[11px] text-stone-400">mín. {product.low_stock_threshold}</p>
                       </div>
+                      {user?.role === "admin" ? (
+                        <div className="flex items-center gap-3 md:justify-end">
+                          <button
+                            className="text-xs font-semibold text-emerald-800 underline decoration-emerald-800/30 underline-offset-4 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700"
+                            onClick={() => {
+                              setActionError(null);
+                              setProductToDelete(null);
+                              setShowCreateForm(false);
+                              setEditingProduct(product);
+                            }}
+                            type="button"
+                          >
+                            Editar
+                          </button>
+                          <button
+                            className="text-xs font-semibold text-rose-700 underline decoration-rose-700/30 underline-offset-4 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rose-700"
+                            onClick={() => {
+                              setActionError(null);
+                              setEditingProduct(null);
+                              setShowCreateForm(false);
+                              setProductToDelete(product);
+                            }}
+                            type="button"
+                          >
+                            Excluir
+                          </button>
+                        </div>
+                      ) : null}
                     </li>
                   );
                 })}
