@@ -3,11 +3,12 @@
 import { useEffect, useState, type ReactNode } from "react";
 
 import { CategoryPanel } from "@/components/categories/CategoryPanel";
+import { MovementList } from "@/components/movements/MovementList";
 import { ProductList } from "@/components/products/ProductList";
 import { useAuth } from "@/context/AuthProvider";
 import { useSession } from "@/context/SessionProvider";
 
-type CatalogSection = "products" | "categories";
+type AppSection = "products" | "categories" | "movements";
 type IconName =
   | "archive"
   | "boxes"
@@ -21,7 +22,7 @@ type IconName =
 const CATALOG_SECTIONS: Array<{
   description: string;
   icon: IconName;
-  id: CatalogSection;
+  id: AppSection;
   label: string;
 }> = [
   {
@@ -37,6 +38,13 @@ const CATALOG_SECTIONS: Array<{
     label: "Categorias",
   },
 ];
+
+const MOVEMENT_SECTION = {
+  description: "Entradas, saídas e ajustes",
+  icon: "movement" as const,
+  id: "movements" as const,
+  label: "Movimentações",
+};
 
 function Icon({ name, className = "size-5" }: { name: IconName; className?: string }) {
   const paths: Record<IconName, ReactNode> = {
@@ -99,7 +107,7 @@ function formatExpiration(expiresAt: string | null): string {
 export function AppShell() {
   const { logout, user } = useAuth();
   const { expiresAt } = useSession();
-  const [activeSection, setActiveSection] = useState<CatalogSection>("products");
+  const [activeSection, setActiveSection] = useState<AppSection>("products");
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   useEffect(() => {
@@ -115,7 +123,9 @@ export function AppShell() {
 
   if (!user) return null;
 
-  const active = CATALOG_SECTIONS.find((section) => section.id === activeSection)!;
+  const active = [...CATALOG_SECTIONS, MOVEMENT_SECTION].find(
+    (section) => section.id === activeSection,
+  )!;
   const roleLabel = user.role === "admin" ? "Administrador" : "Operador";
 
   const sidebar = (
@@ -184,13 +194,26 @@ export function AppShell() {
         <p className="mt-8 px-3 font-mono text-[10px] font-semibold uppercase tracking-[0.18em] text-stone-500">
           Operação
         </p>
-        <div className="mt-3 flex items-center gap-3 rounded-xl px-3 py-3 text-stone-500" aria-disabled="true">
-          <Icon className="size-5 shrink-0" name="movement" />
-          <span className="flex-1 text-sm font-semibold">Movimentações</span>
-          <span className="rounded bg-amber-300/10 px-1.5 py-1 font-mono text-[9px] uppercase tracking-wider text-amber-200">
-            Dia 13
+        <button
+          aria-current={activeSection === "movements" ? "page" : undefined}
+          className={`mt-3 flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left transition focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-400 ${
+            activeSection === "movements"
+              ? "bg-[#f4f1e8] text-[#17201d]"
+              : "text-stone-300 hover:bg-white/[0.06] hover:text-white"
+          }`}
+          onClick={() => {
+            setActiveSection("movements");
+            setMobileMenuOpen(false);
+          }}
+          type="button"
+        >
+          <Icon className={`size-5 shrink-0 ${activeSection === "movements" ? "text-emerald-700" : "text-stone-500"}`} name="movement" />
+          <span className="min-w-0 flex-1">
+            <span className="block text-sm font-semibold">Movimentações</span>
+            <span className="block truncate text-xs text-stone-500">Entradas, saídas e ajustes</span>
           </span>
-        </div>
+          {activeSection === "movements" ? <Icon className="size-4 text-stone-400" name="chevron" /> : null}
+        </button>
       </nav>
 
       <div className="border-t border-white/10 p-3">
@@ -254,7 +277,9 @@ export function AppShell() {
           </button>
 
           <div className="min-w-0">
-            <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-stone-500">Estoque / Catálogo</p>
+            <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-stone-500">
+              Estoque / {activeSection === "movements" ? "Operação" : "Catálogo"}
+            </p>
             <p className="truncate text-sm font-semibold text-stone-800">{active.label}</p>
           </div>
 
@@ -276,7 +301,7 @@ export function AppShell() {
             <div className="flex flex-col gap-5 border-b border-stone-300 pb-7 sm:flex-row sm:items-end sm:justify-between">
               <div>
                 <p className="font-mono text-[11px] font-semibold uppercase tracking-[0.18em] text-emerald-800">
-                  Dia 12 · Catálogo
+                  {activeSection === "movements" ? "Dia 13 · Operação" : "Dia 12 · Catálogo"}
                 </p>
                 <h1 className="mt-2 font-display text-4xl font-bold leading-none tracking-[-0.02em] text-[#17201d] sm:text-5xl">
                   {active.label}
@@ -284,17 +309,25 @@ export function AppShell() {
                 <p className="mt-3 max-w-xl text-sm leading-6 text-stone-600 sm:text-base">
                   {activeSection === "products"
                     ? "Consulte saldos e mantenha os itens desta demonstração organizados."
-                    : "Agrupe os produtos por finalidade para encontrar o estoque mais rápido."}
+                    : activeSection === "categories"
+                      ? "Agrupe os produtos por finalidade para encontrar o estoque mais rápido."
+                      : "Acompanhe cada alteração de saldo registrada nesta sessão."}
                 </p>
               </div>
-              {user.role === "admin" ? (
+              {user.role === "admin" && activeSection !== "movements" ? (
                 <span className="inline-flex h-10 items-center rounded-lg border border-emerald-700/20 bg-emerald-700/[0.06] px-4 font-mono text-[10px] font-semibold uppercase tracking-wider text-emerald-800">
                   Edição liberada para admin
                 </span>
               ) : null}
             </div>
 
-            {activeSection === "products" ? <ProductList /> : <CategoryPanel />}
+            {activeSection === "products" ? (
+              <ProductList />
+            ) : activeSection === "categories" ? (
+              <CategoryPanel />
+            ) : (
+              <MovementList />
+            )}
           </div>
         </main>
       </div>

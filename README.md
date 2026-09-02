@@ -32,8 +32,8 @@ o projeto ainda não possui uma URL pública para a interface.
 - Login com perfis de administrador e operador.
 - Catálogo responsivo com busca, estoque baixo e CRUD de produtos e categorias.
 - Mutações de catálogo restritas ao administrador; operador tem acesso de leitura.
-- Backend de movimentações de entrada, saída e ajuste já disponível; interface
-  de movimentações é o próximo incremento.
+- Histórico paginado e formulário de entrada, saída e ajuste disponíveis para
+  administrador e operador.
 
 ## Desenvolvimento local
 

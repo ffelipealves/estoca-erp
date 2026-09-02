@@ -66,6 +66,34 @@ export interface ProductCreateInput {
 
 export type ProductUpdateInput = Omit<ProductCreateInput, "initial_quantity">;
 
+export type StockMovementType = "entrada" | "saida" | "ajuste";
+
+export interface StockMovement {
+  id: string;
+  product_id: string;
+  performed_by_user_id: string | null;
+  type: StockMovementType;
+  quantity: number;
+  resulting_quantity: number;
+  note: string | null;
+  created_at: string;
+}
+
+export interface StockMovementPage {
+  items: StockMovement[];
+  page: number;
+  page_size: number;
+  total: number;
+  pages: number;
+}
+
+export interface StockMovementCreateInput {
+  product_id: string;
+  type: StockMovementType;
+  quantity: number;
+  note?: string;
+}
+
 export class ApiError extends Error {
   constructor(
     message: string,
@@ -258,5 +286,32 @@ export function updateProduct(
 export function deleteProduct(productId: string): Promise<void> {
   return apiRequest<void>(`/api/v1/products/${productId}`, {
     method: "DELETE",
+  });
+}
+
+export function listStockMovements(
+  page: number,
+  pageSize: number,
+  productId?: string,
+  signal?: AbortSignal,
+): Promise<StockMovementPage> {
+  const query = new URLSearchParams({
+    page: String(page),
+    page_size: String(pageSize),
+  });
+  if (productId) query.set("product_id", productId);
+
+  return apiRequest<StockMovementPage>(
+    `/api/v1/stock-movements?${query.toString()}`,
+    { signal },
+  );
+}
+
+export function createStockMovement(
+  payload: StockMovementCreateInput,
+): Promise<StockMovement> {
+  return apiRequest<StockMovement>("/api/v1/stock-movements", {
+    body: JSON.stringify(payload),
+    method: "POST",
   });
 }

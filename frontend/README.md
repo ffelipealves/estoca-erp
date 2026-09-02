@@ -5,8 +5,9 @@ Frontend do Estoca em Next.js 16, React 19, TypeScript, App Router e Tailwind CS
 ## Estado atual
 
 O frontend possui bootstrap da sessão sandbox, login com restauração durante a
-aba, shell responsivo e CRUD de produtos e categorias. Administradores veem as
-ações de mutação; operadores consultam o catálogo sem receber esses controles.
+aba, shell responsivo, CRUD de produtos e categorias e histórico paginado de
+movimentações. Administradores controlam o catálogo; ambos os perfis registram
+entrada, saída e ajuste de estoque pelo formulário operacional.
 
 A aplicação ainda não está hospedada. O build roda na CI do GitHub, e o deploy
 na Vercel está planejado para o Dia 13 junto da interface de movimentações.
