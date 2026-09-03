@@ -12,7 +12,7 @@ Vercel para o frontend. Nenhum dos provedores escolhidos exige cartão de crédi
 - Backend: Blueprint `estoca-erp`, serviço Docker Free `estoca-api` no Render
 - Frontend: projeto `estoca-erp` na Vercel, conectado à branch `main`
 - Automações de limpeza: workflows, variável `BACKEND_URL` e secret
-  `CRON_SECRET` configurados; primeiras execuções manuais ainda pendentes
+  `CRON_SECRET` configurados e validados manualmente
 
 O fluxo bootstrap → sessão → login → catálogo → movimentações foi validado com
 frontend e backend nos domínios de produção, sem erros no console. A validação
@@ -77,7 +77,7 @@ Configuração efetiva do projeto:
 Vercel e Render fazem auto-deploy a partir de `main`; ambos estão conectados ao
 repositório.
 
-## 4. GitHub Actions de limpeza — validação pendente
+## 4. GitHub Actions de limpeza
 
 Os workflows `.github/workflows/cleanup-expired.yml` e
 `.github/workflows/cleanup-daily.yml` executam, respectivamente, a limpeza de
@@ -93,6 +93,7 @@ Estão configurados no repositório:
 Os workflows enviam esse secret no header `X-Cron-Secret` das chamadas aos
 endpoints internos.
 
-Ainda é necessário executar manualmente cada workflow e confirmar no log a resposta com
-`deleted_sessions`. O agendamento só deve ser considerado validado depois dessas
-duas execuções bem-sucedidas.
+As primeiras execuções manuais foram concluídas com sucesso em 2026-09-03. A
+limpeza de expiradas removeu 9 sessões e o reset diário removeu a sandbox
+restante. Depois do reset, uma nova visita ao frontend criou uma sessão isolada
+e exibiu a tela de login sem erros no console.

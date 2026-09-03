@@ -132,8 +132,8 @@ em dev, `SESSION_COOKIE_SECURE=false` / `SAMESITE=lax`. O banco de teste
   **`cleanup-daily.yml`** reseta todas as sandboxes uma vez ao dia. Ambos chamam
   os endpoints internos com `X-Cron-Secret`, toleram o cold start do Render e
   aceitam `workflow_dispatch`. A variável `BACKEND_URL` e o secret `CRON_SECRET`
-  estão configurados no GitHub; as primeiras execuções manuais ainda precisam
-  ser validadas.
+  estão configurados no GitHub. As execuções manuais dos dois workflows foram
+  validadas com sucesso em produção.
 - Não há workflow de deploy. O Blueprint `render.yaml` descreve o Web Service
   Docker gratuito com root `backend/` e health check em `/healthz`; o Render
   faz auto-deploy do backend quando conectado ao repositório. A Vercel também

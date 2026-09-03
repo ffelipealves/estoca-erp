@@ -3,8 +3,8 @@
 Mini ERP de estoque de portfólio. Cada visitante recebe uma sessão isolada
 (sandbox) para mexer em produtos, categorias e movimentações de estoque. Quando
 a sessão expira, uma próxima visita recebe uma sandbox nova e isolada. Os
-endpoints que removem sessões antigas e os workflows de agendamento já existem;
-a primeira execução manual ainda precisa ser validada no Dia 13.
+endpoints que removem sessões antigas e os workflows de agendamento estão ativos
+e foram validados manualmente no Dia 13.
 
 **Stack:** FastAPI + SQLAlchemy (async) + Alembic + Poetry · Next.js + TypeScript · PostgreSQL · Docker
 

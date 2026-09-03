@@ -4,7 +4,7 @@ Cronograma de 14 dias, part-time, a partir de 2026-08-25. Cada dia deste roadmap
 
 ## Status atual
 
-**Dias 1 a 12 — concluídos. Dia 13 — em andamento.** Backend e frontend estão publicados em `https://estoca-api.onrender.com` e `https://estoca-erp.vercel.app`, usando Neon em produção. O fluxo completo de bootstrap, login, catálogo e movimentações foi validado nos dois domínios, sem erros no console; entrada, bloqueio de saída sem saldo, saída válida, ajuste absoluto e atualização do saldo passaram. A variável e o secret dos workflows de limpeza estão configurados no GitHub, mas as execuções manuais ainda não ocorreram. Próximo incremento: validar os dois workflows via `workflow_dispatch`; depois, repetir o fluxo em Safari/iOS para confirmar o fallback por `X-Session-Id` e concluir o Dia 13.
+**Dias 1 a 12 — concluídos. Dia 13 — em andamento.** Backend e frontend estão publicados em `https://estoca-api.onrender.com` e `https://estoca-erp.vercel.app`, usando Neon em produção. O fluxo completo de bootstrap, login, catálogo e movimentações foi validado nos dois domínios, sem erros no console; entrada, bloqueio de saída sem saldo, saída válida, ajuste absoluto e atualização do saldo passaram. Os dois workflows de limpeza estão configurados e foram validados via `workflow_dispatch`: a limpeza de expiradas removeu 9 sessões, o reset diário removeu a sandbox restante e uma nova visita criou outra sessão isolada normalmente. Próximo incremento: repetir o fluxo em Safari/iOS para confirmar o fallback por `X-Session-Id` e concluir o Dia 13.
 
 ## Dias
 
