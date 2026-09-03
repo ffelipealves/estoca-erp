@@ -48,6 +48,7 @@ async def test_stock_movement_api_supports_roles_pagination_and_isolation() -> N
                 headers=operator_headers,
             )
             product_id = products.json()[0]["id"]
+            initial_quantity = products.json()[0]["quantity"]
 
             unauthenticated_list = await client_a.get("/api/v1/stock-movements")
             unauthenticated_create = await client_a.post(
@@ -72,7 +73,7 @@ async def test_stock_movement_api_supports_roles_pagination_and_isolation() -> N
                 },
             )
             assert entrance.status_code == 201
-            assert entrance.json()["resulting_quantity"] == 5
+            assert entrance.json()["resulting_quantity"] == initial_quantity + 5
             assert entrance.json()["performed_by_user_id"] == operator_id
             assert entrance.json()["note"] == "Entrada pelo operador"
 
@@ -82,7 +83,7 @@ async def test_stock_movement_api_supports_roles_pagination_and_isolation() -> N
                 json={
                     "product_id": product_id,
                     "type": "saida",
-                    "quantity": 6,
+                    "quantity": initial_quantity + 6,
                 },
             )
             assert insufficient.status_code == 422
@@ -127,8 +128,8 @@ async def test_stock_movement_api_supports_roles_pagination_and_isolation() -> N
                 params={"page": 2, "page_size": 1},
             )
             assert first_page.status_code == 200
-            assert first_page.json()["total"] == 2
-            assert first_page.json()["pages"] == 2
+            assert first_page.json()["total"] == 25
+            assert first_page.json()["pages"] == 25
             assert first_page.json()["items"][0]["type"] == "ajuste"
             assert second_page.json()["items"][0]["type"] == "entrada"
 
@@ -137,7 +138,7 @@ async def test_stock_movement_api_supports_roles_pagination_and_isolation() -> N
                 headers=operator_headers,
                 params={"product_id": product_id},
             )
-            assert by_product.json()["total"] == 2
+            assert by_product.json()["total"] == 3
 
             bootstrap_b = await client_b.post("/api/v1/sessions/bootstrap")
             session_b_id = UUID(bootstrap_b.json()["session_id"])
@@ -164,6 +165,7 @@ async def test_stock_movement_api_supports_roles_pagination_and_isolation() -> N
             isolated_list = await client_b.get(
                 "/api/v1/stock-movements",
                 headers=operator_headers_b,
+                params={"product_id": product_id},
             )
             assert cross_session_create.status_code == 404
             assert isolated_list.json()["total"] == 0

@@ -49,7 +49,7 @@ async def test_product_reads_filter_and_isolate_sessions() -> None:
                 headers=headers_a,
             )
             assert product_list.status_code == 200
-            assert len(product_list.json()) == 8
+            assert len(product_list.json()) == 16
             assert [item["sku"] for item in product_list.json()] == sorted(
                 item["sku"] for item in product_list.json()
             )
@@ -83,7 +83,7 @@ async def test_product_reads_filter_and_isolate_sessions() -> None:
                 headers=headers_a,
                 params={"category_id": electronics_id},
             )
-            assert len(by_category.json()) == 3
+            assert len(by_category.json()) == 4
             assert {item["category_id"] for item in by_category.json()} == {
                 electronics_id
             }
@@ -98,8 +98,8 @@ async def test_product_reads_filter_and_isolate_sessions() -> None:
                 headers=headers_a,
                 params={"low_stock": "false"},
             )
-            assert len(low_stock.json()) == 8
-            assert regular_stock.json() == []
+            assert len(low_stock.json()) == 2
+            assert len(regular_stock.json()) == 14
 
             cross_session_detail = await client_b.get(
                 f"/api/v1/products/{product_id}",
@@ -258,6 +258,9 @@ async def test_product_create_enforces_rbac_sku_limit_and_initial_stock() -> Non
             assert same_sku_other_session.status_code == 201
 
             async with async_session_factory() as db:
+                current_count = await ProductRepository(db).count_by_session(
+                    session_a_id
+                )
                 products = [
                     Product(
                         session_id=session_a_id,
@@ -266,7 +269,7 @@ async def test_product_create_enforces_rbac_sku_limit_and_initial_stock() -> Non
                         sku=f"LIMIT-{index:03d}",
                         price=Decimal("1.00"),
                     )
-                    for index in range(41)
+                    for index in range(50 - current_count)
                 ]
                 await ProductRepository(db).create_many(products)
                 await db.commit()

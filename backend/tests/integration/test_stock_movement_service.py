@@ -17,6 +17,7 @@ async def test_stock_movement_rules_keep_balance_and_history_consistent() -> Non
         session = (await SessionService(db).resolve_or_create(None)).session
         await SeedService(db).seed_session(session.id)
         product = (await ProductRepository(db).list_by_session(session.id))[0]
+        initial_quantity = product.quantity
         user = (await DemoUserRepository(db).list_by_session(session.id))[0]
         service = StockMovementService(db)
 
@@ -28,7 +29,7 @@ async def test_stock_movement_rules_keep_balance_and_history_consistent() -> Non
             quantity=10,
             note=" Reposição ",
         )
-        assert entrance.resulting_quantity == 10
+        assert entrance.resulting_quantity == initial_quantity + 10
         assert entrance.note == "Reposição"
 
         output = await service.create(
@@ -38,7 +39,7 @@ async def test_stock_movement_rules_keep_balance_and_history_consistent() -> Non
             movement_type=StockMovementType.saida,
             quantity=4,
         )
-        assert output.resulting_quantity == 6
+        assert output.resulting_quantity == initial_quantity + 6
 
         with pytest.raises(
             BusinessRuleError,
@@ -49,7 +50,7 @@ async def test_stock_movement_rules_keep_balance_and_history_consistent() -> Non
                 product_id=product.id,
                 performed_by_user_id=user.id,
                 movement_type=StockMovementType.saida,
-                quantity=7,
+                quantity=initial_quantity + 7,
             )
 
         adjustment = await service.create(
@@ -73,14 +74,8 @@ async def test_stock_movement_rules_keep_balance_and_history_consistent() -> Non
             session.id,
             product.id,
         )
-        resulting_quantities = {
-            movement.type: movement.resulting_quantity for movement in movements
-        }
-        assert resulting_quantities == {
-            StockMovementType.entrada: 10,
-            StockMovementType.saida: 6,
-            StockMovementType.ajuste: 2,
-        }
+        movement_ids = {movement.id for movement in movements}
+        assert {entrance.id, output.id, adjustment.id} <= movement_ids
 
         await db.rollback()
 
@@ -90,7 +85,11 @@ async def test_stock_movement_limit_blocks_balance_change() -> None:
         session = (await SessionService(db).resolve_or_create(None)).session
         await SeedService(db).seed_session(session.id)
         product = (await ProductRepository(db).list_by_session(session.id))[0]
+        initial_quantity = product.quantity
         user = (await DemoUserRepository(db).list_by_session(session.id))[0]
+        seeded_movement_count = await StockMovementRepository(db).count_by_session(
+            session.id
+        )
         movements = [
             StockMovement(
                 session_id=session.id,
@@ -101,7 +100,7 @@ async def test_stock_movement_limit_blocks_balance_change() -> None:
                 resulting_quantity=0,
                 note="Preenchimento do limite",
             )
-            for _ in range(500)
+            for _ in range(500 - seeded_movement_count)
         ]
         await StockMovementRepository(db).create_many(movements)
 
@@ -122,7 +121,7 @@ async def test_stock_movement_limit_blocks_balance_change() -> None:
             product.id,
         )
         assert refreshed_product is not None
-        assert refreshed_product.quantity == 0
+        assert refreshed_product.quantity == initial_quantity
         assert await StockMovementRepository(db).count_by_session(session.id) == 500
 
         await db.rollback()

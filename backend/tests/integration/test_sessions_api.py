@@ -69,7 +69,7 @@ async def test_bootstrap_is_idempotent_and_isolates_two_clients() -> None:
             users_b = await user_repository.list_by_session(session_b)
 
             assert len(categories_a) == len(categories_b) == 4
-            assert len(products_a) == len(products_b) == 8
+            assert len(products_a) == len(products_b) == 16
             assert len(users_a) == len(users_b) == 2
             assert {item.id for item in categories_a}.isdisjoint(
                 item.id for item in categories_b
