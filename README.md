@@ -3,8 +3,8 @@
 Mini ERP de estoque de portfólio. Cada visitante recebe uma sessão isolada
 (sandbox) para mexer em produtos, categorias e movimentações de estoque. Quando
 a sessão expira, uma próxima visita recebe uma sandbox nova e isolada. Os
-endpoints que removem sessões antigas já existem; o agendamento automático dessa
-limpeza será ativado no Dia 13.
+endpoints que removem sessões antigas e os workflows de agendamento já existem;
+a primeira execução manual ainda precisa ser validada no Dia 13.
 
 **Stack:** FastAPI + SQLAlchemy (async) + Alembic + Poetry · Next.js + TypeScript · PostgreSQL · Docker
 
@@ -14,6 +14,7 @@ limpeza será ativado no Dia 13.
 
 O backend está publicado no Render e usa PostgreSQL no Neon:
 
+- Frontend: https://estoca-erp.vercel.app
 - API: https://estoca-api.onrender.com
 - Health check: https://estoca-api.onrender.com/healthz
 - OpenAPI: https://estoca-api.onrender.com/docs
@@ -21,10 +22,10 @@ O backend está publicado no Render e usa PostgreSQL no Neon:
 O serviço usa o plano gratuito do Render e pode levar cerca de 50 segundos para
 responder à primeira requisição depois de um período sem tráfego.
 
-O frontend **ainda não está publicado**. Ele está implementado até o CRUD de
-produtos e categorias, validado localmente contra a API do Render e coberto por
-lint/build na CI. O deploy na Vercel faz parte do Dia 13 do roadmap; portanto,
-o projeto ainda não possui uma URL pública para a interface.
+O frontend está publicado na Vercel e conectado à API do Render. O fluxo de
+bootstrap, login, catálogo e movimentações foi validado no domínio de produção,
+sem erros no console. Falta repetir a validação em Safari/iOS para encerrar o
+critério cross-browser do Dia 13.
 
 ## Funcionalidades atuais
 

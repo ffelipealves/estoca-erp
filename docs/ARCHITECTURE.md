@@ -131,17 +131,17 @@ em dev, `SESSION_COOKIE_SECURE=false` / `SAMESITE=lax`. O banco de teste
 - **`cleanup-expired.yml`** roda a cada hora e
   **`cleanup-daily.yml`** reseta todas as sandboxes uma vez ao dia. Ambos chamam
   os endpoints internos com `X-Cron-Secret`, toleram o cold start do Render e
-  aceitam `workflow_dispatch`. A variável `BACKEND_URL`, o secret `CRON_SECRET`
-  e as primeiras execuções manuais ainda precisam ser configurados/validados no
-  GitHub.
+  aceitam `workflow_dispatch`. A variável `BACKEND_URL` e o secret `CRON_SECRET`
+  estão configurados no GitHub; as primeiras execuções manuais ainda precisam
+  ser validadas.
 - Não há workflow de deploy. O Blueprint `render.yaml` descreve o Web Service
   Docker gratuito com root `backend/` e health check em `/healthz`; o Render
-  faz auto-deploy do backend quando conectado ao repositório. A Vercel ainda
-  não está conectada e não existe deploy público do frontend.
+  faz auto-deploy do backend quando conectado ao repositório. A Vercel também
+  está conectada e publica o frontend em `https://estoca-erp.vercel.app`.
 - O `DATABASE_URL` pode receber diretamente a connection string do Neon. A configuração troca o dialect para `postgresql+asyncpg`, converte `sslmode` para o parâmetro `ssl` do asyncpg e descarta `channel_binding`, que não é aceito pelo driver.
 - Estado atual de configuração: o Render gera `JWT_SECRET` e recebe
-  `CRON_SECRET` manualmente. O GitHub ainda precisa receber o mesmo
-  `CRON_SECRET` como secret e `BACKEND_URL` como variável de repositório.
+  `CRON_SECRET` manualmente. O GitHub possui o mesmo `CRON_SECRET` como secret e
+  `BACKEND_URL=https://estoca-api.onrender.com` como variável de repositório.
 
 ## Testes
 
