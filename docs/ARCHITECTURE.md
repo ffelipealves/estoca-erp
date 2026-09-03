@@ -114,8 +114,10 @@ Prefixo `/api/v1`; limpeza interna em `/internal` (`include_in_schema=False`).
 - Produtos: `GET/POST /products` (filtros `category_id`, `search`, `low_stock`; teto de 50/sessão; sku único por sessão), `GET/PUT/DELETE /products/{id}` — mutação **admin only**.
 - Movimentações: `GET /stock-movements` (paginado), `POST /stock-movements` — **admin e operador**; teto de 500/sessão.
 
-**Dashboard (sprint 2, ainda não implementado)**: endpoints de resumo e giro
-serão definidos somente se essa etapa entrar no escopo do Dia 14.
+**Dashboard**: o fechamento do estoque é calculado no frontend a partir de
+`GET /products`, sem endpoint agregado paralelo. Exibe valor armazenado,
+quantidade total de unidades, categorias ativas e fila de reposição por
+urgência.
 
 **Interno** (sem JWT, header `X-Cron-Secret` via `secrets.compare_digest`): `POST /internal/cleanup/expired`, `POST /internal/cleanup/wipe-all`. Mais `GET /healthz` público.
 
@@ -144,12 +146,30 @@ em dev, `SESSION_COOKIE_SECURE=false` / `SAMESITE=lax`. O banco de teste
 - Estado atual de configuração: o Render gera `JWT_SECRET` e recebe
   `CRON_SECRET` manualmente. O GitHub possui o mesmo `CRON_SECRET` como secret e
   `BACKEND_URL=https://estoca-api.onrender.com` como variável de repositório.
+- Render e Neon estão na AWS US West 2 (Oregon). O banco ativo é o projeto
+  `estoca-erp-oregon`, branch `production`, database `neondb`; o projeto antigo
+  em São Paulo foi removido após o cutover e a validação em produção.
+
+## Seed da sandbox
+
+O bootstrap de uma sessão nova e o reset administrativo criam o mesmo estado
+inicial: 4 categorias, 16 produtos, 2 usuários demo e 23 movimentações. Os
+produtos começam com saldos variados; dois produtos ficam abaixo do estoque
+mínimo para alimentar a fila de reposição.
+
+O seed não escreve `product.quantity` diretamente. Primeiro cria os produtos e
+usuários, depois registra o estoque inicial e o histórico adicional por
+`StockMovementService`. Assim, a mesma regra responsável pelas movimentações
+reais mantém saldo e `resulting_quantity` coerentes. Uma segunda chamada de
+bootstrap na mesma sessão não duplica nenhum item.
 
 ## Testes
 
 **Backend** (pytest + `httpx.AsyncClient` contra Postgres real de teste) — 5 fluxos obrigatórios, todos com teste dedicado:
 1. **Isolamento entre sessões** — dois clientes com cookie jars distintos não veem dados um do outro. Prova a premissa central do produto.
-2. **Seed correto** — bootstrap cria N categorias/produtos/2 demo users; segunda chamada com mesmo cookie não recria.
+2. **Seed correto** — bootstrap cria 4 categorias, 16 produtos, 23
+   movimentações e 2 usuários demo; segunda chamada com o mesmo cookie não
+   recria.
 3. **Expiração** (com `freezegun`) — 2h inatividade OU 24h de vida; `cleanup/expired` remove só as vencidas; `wipe-all` remove tudo.
 4. **Regras de estoque** — entrada soma, saída bloqueia se insuficiente (422), ajuste calcula delta absoluto, teto de 500, `resulting_quantity` correto.
 5. **RBAC** — operador bloqueado em mutação de produto/categoria (403) mas liberado em movimentações; reset só admin; JWT de uma sessão não funciona em outra.
@@ -160,3 +180,6 @@ para o risco cross-domain principal: com cookies removidos, ele confirma em
 produção que bootstrap após recarga, login e movimentação preservam a sandbox
 por `X-Session-Id`. A suíte não roda na CI para evitar o download do navegador
 em todos os pushes.
+
+A suíte atual do backend possui 30 testes. O seed populado, o reset e os
+limites de produtos e movimentações são cobertos contra PostgreSQL real.

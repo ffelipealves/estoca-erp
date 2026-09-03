@@ -8,8 +8,10 @@ Vercel para o frontend. Nenhum dos provedores escolhidos exige cartão de crédi
 - API: `https://estoca-api.onrender.com`
 - Frontend: `https://estoca-erp.vercel.app`
 - Health check: `https://estoca-api.onrender.com/healthz`
-- Banco: projeto `estoca-erp`, branch `production`, banco `neondb` no Neon
+- Banco: projeto `estoca-erp-oregon`, branch `production`, banco `neondb` no
+  Neon, região AWS US West 2 (Oregon)
 - Backend: Blueprint `estoca-erp`, serviço Docker Free `estoca-api` no Render
+  em Oregon
 - Frontend: projeto `estoca-erp` na Vercel, conectado à branch `main`
 - Automações de limpeza: workflows, variável `BACKEND_URL` e secret
   `CRON_SECRET` configurados e validados manualmente
@@ -17,11 +19,14 @@ Vercel para o frontend. Nenhum dos provedores escolhidos exige cartão de crédi
 O fluxo bootstrap → sessão → login → catálogo → movimentações foi validado com
 frontend e backend nos domínios de produção, sem erros no console. O fallback
 sem cookie foi validado no WebKit 26.5 do Playwright em viewport de iPhone 13.
+Uma sessão nova também foi validada com 16 produtos, 23 movimentações e 2
+produtos abaixo do estoque mínimo.
 
 ## 1. Banco no Neon
 
-1. Crie um projeto gratuito chamado `estoca-erp`.
-2. Mantenha o banco e a branch criados por padrão.
+1. Crie um projeto gratuito chamado `estoca-erp-oregon` na região AWS US West
+   2 (Oregon), a mesma região do serviço no Render.
+2. Mantenha o banco `neondb` e a branch `production`.
 3. Em **Connect**, selecione a conexão com pool e copie a connection string.
 
 O Neon entrega uma URL que começa com `postgresql://` e normalmente termina em
@@ -79,7 +84,23 @@ Configuração efetiva do projeto:
 Vercel e Render fazem auto-deploy a partir de `main`; ambos estão conectados ao
 repositório.
 
-## 4. GitHub Actions de limpeza
+## 4. Validação do seed em produção
+
+Após um deploy que altere o seed, valide sempre com uma sessão nova ou use o
+reset administrativo em uma sandbox existente. O resultado esperado é:
+
+| Recurso | Quantidade inicial |
+|---|---:|
+| Categorias | 4 |
+| Produtos | 16 |
+| Movimentações | 23 |
+| Produtos em estoque baixo | 2 |
+
+As movimentações incluem 18 entradas (16 delas de estoque inicial), 4 saídas e
+1 ajuste absoluto. O seed passa pelo `StockMovementService`; portanto, os
+saldos exibidos nos produtos correspondem ao `resulting_quantity` do histórico.
+
+## 5. GitHub Actions de limpeza
 
 Os workflows `.github/workflows/cleanup-expired.yml` e
 `.github/workflows/cleanup-daily.yml` executam, respectivamente, a limpeza de
@@ -99,3 +120,10 @@ As primeiras execuções manuais foram concluídas com sucesso em 2026-09-03. A
 limpeza de expiradas removeu 9 sessões e o reset diário removeu a sandbox
 restante. Depois do reset, uma nova visita ao frontend criou uma sessão isolada
 e exibiu a tela de login sem erros no console.
+
+## Histórico de infraestrutura
+
+O banco original ficava em São Paulo enquanto o Render executava a API em
+Oregon, criando latência inter-regional em todas as consultas. Em 2026-09-03, o
+backend foi migrado para `estoca-erp-oregon`; migrações, health check e o fluxo
+E2E foram validados antes da exclusão permanente do projeto antigo.

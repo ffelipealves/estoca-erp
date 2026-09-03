@@ -25,12 +25,18 @@ As credenciais ficam preenchidas na interface:
 | Administrador | `admin@estoca.demo` | `demo123` | CRUD do catálogo e movimentações |
 | Operador | `operador@estoca.demo` | `demo123` | Consulta e movimentações |
 
+Cada nova sandbox já começa pronta para exploração, com 4 categorias, 16
+produtos, saldos variados e 23 movimentações de exemplo. Há entradas, saídas,
+um ajuste de inventário e produtos abaixo do estoque mínimo. O administrador
+pode restaurar esse estado inicial usando o reset da sessão.
+
 ## O que está pronto
 
 - Sandbox isolada por visitante, com expiração e limpeza automática.
 - Login com perfis de administrador e operador.
 - CRUD de produtos e categorias com busca e indicação de estoque baixo.
 - Entrada, saída e ajuste absoluto de estoque com histórico paginado.
+- Catálogo inicial realista com 16 produtos e 23 movimentações por sessão.
 - Bloqueio de saída sem saldo e atualização atômica do produto e do histórico.
 - Fechamento do estoque com valor armazenado, unidades, categorias ativas e
   fila de reposição por urgência.
@@ -143,8 +149,9 @@ O ambiente foi desenhado para custar **US$ 0/mês e não exigir cartão de
 crédito**:
 
 - Vercel hospeda o frontend.
-- Render executa a API em container Docker.
-- Neon fornece o PostgreSQL.
+- Render executa a API em container Docker na região de Oregon.
+- Neon fornece o PostgreSQL também em Oregon, evitando tráfego inter-regional
+  entre a API e o banco.
 - GitHub Actions executa CI e as rotinas de limpeza.
 
 Um workflow remove sessões expiradas a cada hora; outro reinicia todas as
@@ -157,8 +164,7 @@ sandboxes diariamente. Ambos autenticam as chamadas internas com
 - Múltiplos depósitos.
 - Refresh token e rate limit para criação de sessões.
 - Ampliar os testes E2E para o CRUD completo e outros tamanhos de tela.
-- Adicionar visualizações históricas quando existirem dados iniciais que tornem
-  os gráficos informativos.
+- Adicionar visualizações históricas de estoque usando o seed já disponível.
 
 O histórico do projeto e os critérios de cada etapa estão em
 [`docs/ROADMAP.md`](docs/ROADMAP.md).
