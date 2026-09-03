@@ -4,7 +4,7 @@ Cronograma de 14 dias, part-time, a partir de 2026-08-25. Cada dia deste roadmap
 
 ## Status atual
 
-**Dias 1 a 12 — concluídos. Dia 13 — em andamento.** Backend e frontend estão publicados em `https://estoca-api.onrender.com` e `https://estoca-erp.vercel.app`, usando Neon em produção. O fluxo completo de bootstrap, login, catálogo e movimentações foi validado nos dois domínios, sem erros no console; entrada, bloqueio de saída sem saldo, saída válida, ajuste absoluto e atualização do saldo passaram. Os dois workflows de limpeza estão configurados e foram validados via `workflow_dispatch`: a limpeza de expiradas removeu 9 sessões, o reset diário removeu a sandbox restante e uma nova visita criou outra sessão isolada normalmente. Próximo incremento: repetir o fluxo em Safari/iOS para confirmar o fallback por `X-Session-Id` e concluir o Dia 13.
+**Dias 1 a 13 — concluídos. Dia 14 — próximo.** Backend e frontend estão publicados em `https://estoca-api.onrender.com` e `https://estoca-erp.vercel.app`, usando Neon em produção. O fluxo completo de bootstrap, login, catálogo e movimentações foi validado nos dois domínios, sem erros no console; entrada, bloqueio de saída sem saldo, saída válida, ajuste absoluto e atualização do saldo passaram. Os dois workflows de limpeza estão configurados e foram validados via `workflow_dispatch`: a limpeza de expiradas removeu 9 sessões, o reset diário removeu a sandbox restante e uma nova visita criou outra sessão isolada normalmente. Como não havia Safari físico disponível, a compatibilidade foi validada em produção com o WebKit 26.5 do Playwright, viewport de iPhone 13 e cookies removidos: bootstrap após recarga, login e movimentação preservaram a mesma sandbox exclusivamente pelo header `X-Session-Id`. Próximo incremento: iniciar o Dia 14 pelos cards de resumo e estoque baixo.
 
 ## Dias
 
@@ -22,11 +22,11 @@ Cronograma de 14 dias, part-time, a partir de 2026-08-25. Cada dia deste roadmap
 | 10 | CI (`ci.yml`) verde no GitHub Actions. Deploy: Neon + Render. | Backend respondendo em produção (`/healthz` 200 no domínio do Render); CI verde no Actions. |
 | 11 | `create-next-app`, `lib/api.ts`, `SessionProvider` (bootstrap + loading de cold start), tela de login. | Login funciona local contra o backend (local ou já em produção). |
 | 12 | Frontend: lista/form de produtos, form de categoria (mutação só visível pra admin). | CRUD de produto/categoria funciona ponta a ponta no navegador. |
-| 13 | Frontend: form/lista de movimentações. Deploy na Vercel. Teste manual em produção (Chrome + Safari/iOS) validando o fallback cookie/header. | **Checkpoint "núcleo pronto"**: fluxo completo (bootstrap → login → CRUD → movimentação) funcionando em produção nos dois domínios; crons ativados e validados via `workflow_dispatch`. |
+| 13 | Frontend: form/lista de movimentações. Deploy na Vercel. Teste manual em produção no Chrome e teste WebKit em viewport de iPhone, sem cookies, validando o fallback por header. | **Checkpoint "núcleo pronto"**: fluxo completo (bootstrap → login → CRUD → movimentação) funcionando em produção nos dois domínios; fallback `X-Session-Id` validado; crons ativados e validados via `workflow_dispatch`. |
 | 14 | Se sobrou tempo: sprint 2 timeboxed (cards de resumo + lista de estoque baixo + gráfico com recharts). Reservar o fim do dia pro `README.md` final (arquitetura, decisões, como rodar local, próximos passos). | README cobre arquitetura + como rodar local; sprint 2 implementado até onde o tempo permitiu, sem deixar nada pela metade visível na UI. |
 
 Se atrasar: cortar primeiro o gráfico do dashboard, depois o dashboard inteiro — manter o badge de estoque baixo se der (barato, bom impacto visual). Núcleo (dias 1-13) não é negociável; sprint 2 (dia 14) é.
 
 ## Próximos passos fora do escopo das 2 semanas
 
-Registrar no README final: fornecedores, clientes, multi-depósito, refresh token, rate limit de criação de sessão, testes E2E com Playwright.
+Registrar no README final: fornecedores, clientes, multi-depósito, refresh token, rate limit de criação de sessão e expansão da cobertura E2E com Playwright.

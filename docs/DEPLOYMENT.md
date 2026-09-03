@@ -15,8 +15,8 @@ Vercel para o frontend. Nenhum dos provedores escolhidos exige cartão de crédi
   `CRON_SECRET` configurados e validados manualmente
 
 O fluxo bootstrap → sessão → login → catálogo → movimentações foi validado com
-frontend e backend nos domínios de produção, sem erros no console. A validação
-equivalente em Safari/iOS ainda está pendente.
+frontend e backend nos domínios de produção, sem erros no console. O fallback
+sem cookie foi validado no WebKit 26.5 do Playwright em viewport de iPhone 13.
 
 ## 1. Banco no Neon
 
@@ -70,9 +70,11 @@ Configuração efetiva do projeto:
 4. O domínio público resultante é `https://estoca-erp.vercel.app`.
 5. No Render, atualize `CORS_ORIGINS` para conter
    `http://localhost:3000,<domínio-vercel>` e faça o redeploy da API.
-6. Bootstrap, login, catálogo e movimentações já foram validados no navegador
-   de produção. Ainda falta repetir o fluxo em Safari/iOS para concluir a
-   validação do fallback `X-Session-Id` em ambos os ambientes exigidos.
+6. Bootstrap, login, catálogo e movimentações foram validados no navegador de
+   produção. Sem um dispositivo Apple disponível, o cenário Safari/iOS foi
+   coberto pelo WebKit 26.5 do Playwright em viewport de iPhone 13. O teste
+   remove os cookies, recarrega a página e confirma que bootstrap, login e uma
+   movimentação mantêm a mesma sandbox pelo header `X-Session-Id`.
 
 Vercel e Render fazem auto-deploy a partir de `main`; ambos estão conectados ao
 repositório.

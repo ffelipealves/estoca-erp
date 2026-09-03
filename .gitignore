@@ -16,6 +16,9 @@ node_modules/
 .next/
 out/
 next-env.d.ts
+frontend/test-results/
+frontend/playwright-report/
+frontend/blob-report/
 
 # Env files
 .env

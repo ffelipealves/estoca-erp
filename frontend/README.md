@@ -35,4 +35,10 @@ requisições autenticadas enviam `X-Session-Id` e Bearer token; o header de ses
 ```bash
 npm run lint
 npm run build
+npx playwright install webkit
+npm run test:e2e:webkit
 ```
+
+O teste WebKit roda contra a aplicação publicada por padrão e força o cenário
+sem cookie para verificar o fallback por `X-Session-Id`. Use
+`PLAYWRIGHT_BASE_URL` para apontá-lo a outro frontend.

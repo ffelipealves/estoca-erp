@@ -152,4 +152,9 @@ em dev, `SESSION_COOKIE_SECURE=false` / `SAMESITE=lax`. O banco de teste
 4. **Regras de estoque** — entrada soma, saída bloqueia se insuficiente (422), ajuste calcula delta absoluto, teto de 500, `resulting_quantity` correto.
 5. **RBAC** — operador bloqueado em mutação de produto/categoria (403) mas liberado em movimentações; reset só admin; JWT de uma sessão não funciona em outra.
 
-**Frontend**: sem testes automatizados de UI no escopo garantido (custo/benefício ruim em 2 semanas solo) — `npm run build` no CI já cobre erros de TS. Validação real é manual nos checkpoints do roadmap.
+**Frontend**: `npm run build` no CI cobre erros de TypeScript e a validação dos
+checkpoints permanece manual. Há um teste E2E direcionado em Playwright/WebKit
+para o risco cross-domain principal: com cookies removidos, ele confirma em
+produção que bootstrap após recarga, login e movimentação preservam a sandbox
+por `X-Session-Id`. A suíte não roda na CI para evitar o download do navegador
+em todos os pushes.

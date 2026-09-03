@@ -24,8 +24,9 @@ responder à primeira requisição depois de um período sem tráfego.
 
 O frontend está publicado na Vercel e conectado à API do Render. O fluxo de
 bootstrap, login, catálogo e movimentações foi validado no domínio de produção,
-sem erros no console. Falta repetir a validação em Safari/iOS para encerrar o
-critério cross-browser do Dia 13.
+sem erros no console. O fallback sem cookie também foi validado no WebKit 26.5
+do Playwright, em viewport de iPhone 13, mantendo a sandbox pelo header
+`X-Session-Id` durante bootstrap, login e movimentação.
 
 ## Funcionalidades atuais
 
