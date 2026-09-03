@@ -128,19 +128,20 @@ em dev, `SESSION_COOKIE_SECURE=false` / `SAMESITE=lax`. O banco de teste
 ## GitHub Actions
 
 - **`ci.yml`** (`pull_request` + `push: main` + `workflow_dispatch`): job `backend` (Python 3.12, Postgres de serviço, validação do Poetry, `alembic upgrade head`, `ruff check/format`, `pytest --cov` e build da imagem de produção) e job `frontend` (Node 24, `npm ci`, ESLint e build Next.js).
-- Hoje existe apenas **`ci.yml`**. Os workflows agendados de limpeza ainda não
-  foram criados; são parte do checkpoint do Dia 13 e deverão chamar
-  `/internal/cleanup/expired` e `/internal/cleanup/wipe-all` com
-  `X-Cron-Secret` e suporte a `workflow_dispatch`.
+- **`cleanup-expired.yml`** roda a cada hora e
+  **`cleanup-daily.yml`** reseta todas as sandboxes uma vez ao dia. Ambos chamam
+  os endpoints internos com `X-Cron-Secret`, toleram o cold start do Render e
+  aceitam `workflow_dispatch`. A variável `BACKEND_URL`, o secret `CRON_SECRET`
+  e as primeiras execuções manuais ainda precisam ser configurados/validados no
+  GitHub.
 - Não há workflow de deploy. O Blueprint `render.yaml` descreve o Web Service
   Docker gratuito com root `backend/` e health check em `/healthz`; o Render
   faz auto-deploy do backend quando conectado ao repositório. A Vercel ainda
   não está conectada e não existe deploy público do frontend.
 - O `DATABASE_URL` pode receber diretamente a connection string do Neon. A configuração troca o dialect para `postgresql+asyncpg`, converte `sslmode` para o parâmetro `ssl` do asyncpg e descarta `channel_binding`, que não é aceito pelo driver.
 - Estado atual de configuração: o Render gera `JWT_SECRET` e recebe
-  `CRON_SECRET` manualmente. Quando os workflows de limpeza forem criados, o
-  GitHub receberá o mesmo `CRON_SECRET` como secret e `BACKEND_URL` como variável
-  de repositório.
+  `CRON_SECRET` manualmente. O GitHub ainda precisa receber o mesmo
+  `CRON_SECRET` como secret e `BACKEND_URL` como variável de repositório.
 
 ## Testes
 

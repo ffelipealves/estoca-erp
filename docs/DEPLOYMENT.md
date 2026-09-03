@@ -11,7 +11,8 @@ Vercel no Dia 13. Nenhum dos provedores escolhidos exige cartão de crédito.
 - Banco: projeto `estoca-erp`, branch `production`, banco `neondb` no Neon
 - Backend: Blueprint `estoca-erp`, serviço Docker Free `estoca-api` no Render
 - Frontend: somente local/CI; sem projeto ou domínio Vercel documentado
-- Automações de limpeza: endpoints prontos, workflows agendados ainda pendentes
+- Automações de limpeza: workflows prontos; configuração e validação no GitHub
+  ainda pendentes
 
 O backend foi validado em produção. O fluxo bootstrap → sessão → login → CRUD
 de catálogo foi validado com o frontend local consumindo a API publicada; isso
@@ -76,12 +77,22 @@ Vercel e Render fazem auto-deploy a partir de `main` somente depois que cada
 projeto está efetivamente conectado ao repositório. No estado atual, isso vale
 para o Render, mas ainda não para a Vercel.
 
-## 4. GitHub Actions de limpeza — pendente
+## 4. GitHub Actions de limpeza — configuração pendente
 
-O repositório contém apenas `.github/workflows/ci.yml`. No Dia 13 ainda devem ser
-adicionados os workflows de limpeza expirada e limpeza diária, ambos com
-`workflow_dispatch`. Eles usarão:
+Os workflows `.github/workflows/cleanup-expired.yml` e
+`.github/workflows/cleanup-daily.yml` executam, respectivamente, a limpeza de
+sessões expiradas a cada hora (no minuto 17) e o reset de todas as sandboxes às
+06:37 UTC diariamente. Ambos também aceitam execução manual por
+`workflow_dispatch` e fazem retries para tolerar o cold start do Render.
+
+Para ativá-los, configure no repositório:
 
 - variável de repositório `BACKEND_URL=https://estoca-api.onrender.com`;
-- secret `CRON_SECRET`, com o mesmo valor cadastrado no Render;
-- header `X-Cron-Secret` nas chamadas aos endpoints internos.
+- secret `CRON_SECRET`, com o mesmo valor cadastrado no Render.
+
+Os workflows enviam esse secret no header `X-Cron-Secret` das chamadas aos
+endpoints internos.
+
+Depois, execute manualmente cada workflow e confirme no log a resposta com
+`deleted_sessions`. O agendamento só deve ser considerado validado depois dessas
+duas execuções bem-sucedidas.

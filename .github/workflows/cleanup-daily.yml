@@ -1,0 +1,43 @@
+name: Daily sandbox reset
+
+on:
+  schedule:
+    - cron: "37 6 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: daily-sandbox-reset
+  cancel-in-progress: false
+
+jobs:
+  cleanup:
+    name: Delete all demo sessions
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      BACKEND_URL: ${{ vars.BACKEND_URL }}
+      CRON_SECRET: ${{ secrets.CRON_SECRET }}
+
+    steps:
+      - name: Validate configuration
+        run: |
+          test -n "$BACKEND_URL" || { echo "Repository variable BACKEND_URL is not configured."; exit 1; }
+          test -n "$CRON_SECRET" || { echo "Repository secret CRON_SECRET is not configured."; exit 1; }
+
+      - name: Reset demo sessions
+        run: >-
+          curl
+          --fail-with-body
+          --show-error
+          --silent
+          --retry 3
+          --retry-all-errors
+          --retry-delay 20
+          --connect-timeout 30
+          --max-time 120
+          --request POST
+          --header "X-Cron-Secret: $CRON_SECRET"
+          "${BACKEND_URL%/}/internal/cleanup/wipe-all"
