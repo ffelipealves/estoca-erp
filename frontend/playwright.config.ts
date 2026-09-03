@@ -11,7 +11,7 @@ export default defineConfig({
   ],
   reporter: "list",
   testDir: "./tests/e2e",
-  timeout: 180_000,
+  timeout: 240_000,
   use: {
     baseURL: process.env.PLAYWRIGHT_BASE_URL ?? "https://estoca-erp.vercel.app",
     screenshot: "only-on-failure",

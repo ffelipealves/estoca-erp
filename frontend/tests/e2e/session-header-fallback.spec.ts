@@ -13,8 +13,22 @@ interface ObservedRequest {
 test("keeps the sandbox usable through X-Session-Id without cookies", async ({
   context,
   page,
+  request,
 }) => {
   const observedRequests: ObservedRequest[] = [];
+
+  await expect
+    .poll(
+      async () => {
+        try {
+          return (await request.get(`${API_ORIGIN}/healthz`, { timeout: 30_000 })).ok();
+        } catch {
+          return false;
+        }
+      },
+      { intervals: [2_000, 5_000, 10_000], timeout: 120_000 },
+    )
+    .toBe(true);
 
   page.on("request", (request) => {
     const url = new URL(request.url());
@@ -67,6 +81,7 @@ test("keeps the sandbox usable through X-Session-Id without cookies", async ({
   observedRequests.length = 0;
   await page.getByRole("button", { name: "Entrar na demonstração" }).click();
   await expect(page.getByRole("heading", { name: "Produtos" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Pulso do estoque" })).toBeVisible();
 
   const headerLogin = observedRequests.find(
     ({ method, path }) => method === "POST" && path === "/api/v1/auth/login",
