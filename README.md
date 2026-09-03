@@ -33,6 +33,8 @@ do Playwright, em viewport de iPhone 13, mantendo a sandbox pelo header
 - Sessão sandbox isolada por visitante, com cookie e fallback `X-Session-Id`.
 - Login com perfis de administrador e operador.
 - Catálogo responsivo com busca, estoque baixo e CRUD de produtos e categorias.
+- Fechamento do estoque com valor armazenado, unidades, categorias ativas e
+  fila de reposição por urgência.
 - Mutações de catálogo restritas ao administrador; operador tem acesso de leitura.
 - Histórico paginado e formulário de entrada, saída e ajuste disponíveis para
   administrador e operador.

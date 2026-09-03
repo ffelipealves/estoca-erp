@@ -22,9 +22,11 @@ cookie, fallback `X-Session-Id`, Bearer token e contratos HTTP.
 
 O shell autenticado está em `components/layout/AppShell.tsx`. Produtos e
 categorias possuem componentes próprios com estados de carregamento, erro e
-vazio, além de mutações visíveis somente para administrador. O saldo do produto
-é apenas exibido: nenhuma tela de catálogo escreve `quantity`; a quantidade
-inicial e as movimentações continuam passando pelo backend.
+vazio, além de mutações visíveis somente para administrador. O resumo do estoque
+é derivado no cliente a partir da mesma lista de produtos, sem endpoint ou fonte
+de estado paralela. O saldo do produto é apenas exibido: nenhuma tela de catálogo
+escreve `quantity`; a quantidade inicial e as movimentações continuam passando
+pelo backend.
 
 ## Modelo de dados
 

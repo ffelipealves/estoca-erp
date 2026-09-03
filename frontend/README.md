@@ -7,7 +7,9 @@ Frontend do Estoca em Next.js 16, React 19, TypeScript, App Router e Tailwind CS
 O frontend possui bootstrap da sessão sandbox, login com restauração durante a
 aba, shell responsivo, CRUD de produtos e categorias e histórico paginado de
 movimentações. Administradores controlam o catálogo; ambos os perfis registram
-entrada, saída e ajuste de estoque pelo formulário operacional.
+entrada, saída e ajuste de estoque pelo formulário operacional. A visão de
+produtos também resume valor armazenado, unidades, categorias ativas e itens
+que chegaram ao ponto de reposição.
 
 A aplicação está publicada em `https://estoca-erp.vercel.app`, com deploy
 automático da branch `main` pela Vercel. O build também roda na CI do GitHub.

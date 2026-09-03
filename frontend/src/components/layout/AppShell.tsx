@@ -301,7 +301,11 @@ export function AppShell() {
             <div className="flex flex-col gap-5 border-b border-stone-300 pb-7 sm:flex-row sm:items-end sm:justify-between">
               <div>
                 <p className="font-mono text-[11px] font-semibold uppercase tracking-[0.18em] text-emerald-800">
-                  {activeSection === "movements" ? "Dia 13 · Operação" : "Dia 12 · Catálogo"}
+                  {activeSection === "products"
+                    ? "Dia 14 · Visão do estoque"
+                    : activeSection === "categories"
+                      ? "Dia 12 · Catálogo"
+                      : "Dia 13 · Operação"}
                 </p>
                 <h1 className="mt-2 font-display text-4xl font-bold leading-none tracking-[-0.02em] text-[#17201d] sm:text-5xl">
                   {active.label}
