@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 
+import { AdminAction } from "@/components/auth/AdminAction";
 import { ProductForm } from "@/components/products/ProductForm";
 import { InventorySummary } from "@/components/products/InventorySummary";
 import { useAuth } from "@/context/AuthProvider";
@@ -13,6 +14,7 @@ import {
   type Category,
   type Product,
 } from "@/lib/api";
+import { ADMIN_ONLY_NOTICE, describeMutationError } from "@/lib/permissions";
 
 const currencyFormatter = new Intl.NumberFormat("pt-BR", {
   currency: "BRL",
@@ -69,6 +71,15 @@ export function ProductList() {
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [productToDelete, setProductToDelete] = useState<Product | null>(null);
+  const [restrictionMessage, setRestrictionMessage] = useState<string | null>(null);
+
+  const isAdmin = user?.role === "admin";
+
+  function showRestriction() {
+    setActionError(null);
+    setSuccessMessage(null);
+    setRestrictionMessage(ADMIN_ONLY_NOTICE);
+  }
 
   useEffect(() => {
     const controller = new AbortController();
@@ -153,9 +164,10 @@ export function ProductList() {
       setProductToDelete(null);
     } catch (error: unknown) {
       setActionError(
-        error instanceof ApiError
-          ? error.message
-          : "Não foi possível excluir o produto. Verifique a conexão e tente novamente.",
+        describeMutationError(
+          error,
+          "Não foi possível excluir o produto. Verifique a conexão e tente novamente.",
+        ),
       );
     } finally {
       setDeletingProductId(null);
@@ -179,21 +191,22 @@ export function ProductList() {
           </p>
         </div>
         <div className="flex flex-wrap gap-2 self-start sm:self-auto">
-          {user?.role === "admin" ? (
-            <button
-              aria-expanded={showCreateForm}
-              className="inline-flex h-9 items-center justify-center rounded-lg bg-[#17201d] px-4 font-mono text-[10px] font-semibold uppercase tracking-wider text-white shadow-[0_2px_0_#0f8a5f] transition hover:-translate-y-0.5 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700"
-              onClick={() => {
-                setSuccessMessage(null);
-                setActionError(null);
-                setEditingProduct(null);
-                setShowCreateForm((current) => !current);
-              }}
-              type="button"
-            >
-              {showCreateForm ? "Fechar ficha" : "+ Novo produto"}
-            </button>
-          ) : null}
+          <AdminAction
+            ariaExpanded={showCreateForm}
+            blockedClassName="inline-flex h-9 items-center justify-center gap-1.5 rounded-lg border border-dashed border-stone-400 bg-stone-100 px-4 font-mono text-[10px] font-semibold uppercase tracking-wider text-stone-500 transition hover:border-stone-500 hover:text-stone-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-stone-600"
+            className="inline-flex h-9 items-center justify-center rounded-lg bg-[#17201d] px-4 font-mono text-[10px] font-semibold uppercase tracking-wider text-white shadow-[0_2px_0_#0f8a5f] transition hover:-translate-y-0.5 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700"
+            isAdmin={isAdmin}
+            onBlocked={showRestriction}
+            onClick={() => {
+              setRestrictionMessage(null);
+              setSuccessMessage(null);
+              setActionError(null);
+              setEditingProduct(null);
+              setShowCreateForm((current) => !current);
+            }}
+          >
+            {isAdmin && showCreateForm ? "Fechar ficha" : "+ Novo produto"}
+          </AdminAction>
           <button
             className="inline-flex h-9 items-center justify-center gap-2 rounded-lg border border-stone-300 bg-white px-3 font-mono text-[10px] font-semibold uppercase tracking-wider text-stone-600 shadow-sm transition hover:border-stone-400 hover:text-stone-900 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700 disabled:cursor-wait disabled:opacity-50"
             disabled={isLoading}
@@ -209,7 +222,7 @@ export function ProductList() {
         </div>
       </div>
 
-      {showCreateForm && user?.role === "admin" ? (
+      {showCreateForm && isAdmin ? (
         <ProductForm
           categories={categories}
           onCancel={() => setShowCreateForm(false)}
@@ -217,7 +230,7 @@ export function ProductList() {
         />
       ) : null}
 
-      {editingProduct && user?.role === "admin" ? (
+      {editingProduct && isAdmin ? (
         <ProductForm
           categories={categories}
           key={editingProduct.id}
@@ -227,7 +240,7 @@ export function ProductList() {
         />
       ) : null}
 
-      {productToDelete && user?.role === "admin" ? (
+      {productToDelete && isAdmin ? (
         <div className="flex flex-col gap-4 border-b border-rose-200 bg-rose-50 px-5 py-5 sm:flex-row sm:items-center sm:justify-between sm:px-6">
           <div>
             <p className="font-mono text-[10px] font-semibold uppercase tracking-[0.17em] text-rose-700">
@@ -255,6 +268,22 @@ export function ProductList() {
               Cancelar
             </button>
           </div>
+        </div>
+      ) : null}
+
+      {restrictionMessage ? (
+        <div
+          className="flex flex-wrap items-center justify-between gap-3 border-b border-amber-300 bg-amber-50 px-5 py-3 sm:px-6"
+          role="status"
+        >
+          <p className="text-sm leading-6 text-amber-900">{restrictionMessage}</p>
+          <button
+            className="shrink-0 font-mono text-[10px] font-semibold uppercase tracking-wider text-amber-900 underline decoration-amber-900/30 underline-offset-4 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-800"
+            onClick={() => setRestrictionMessage(null)}
+            type="button"
+          >
+            Entendi
+          </button>
         </div>
       ) : null}
 
@@ -335,12 +364,12 @@ export function ProductList() {
 
           {visibleProducts.length > 0 ? (
             <div>
-              <div className={`hidden gap-5 border-b border-stone-200 bg-stone-50 px-6 py-3 font-mono text-[9px] font-semibold uppercase tracking-[0.16em] text-stone-500 md:grid ${user?.role === "admin" ? "grid-cols-[minmax(220px,2fr)_1fr_0.8fr_0.8fr_auto]" : "grid-cols-[minmax(220px,2fr)_1fr_0.8fr_0.8fr]"}`}>
+              <div className="hidden grid-cols-[minmax(220px,2fr)_1fr_0.8fr_0.8fr_132px] gap-5 border-b border-stone-200 bg-stone-50 px-6 py-3 font-mono text-[9px] font-semibold uppercase tracking-[0.16em] text-stone-500 md:grid">
                 <span>Produto / SKU</span>
                 <span>Categoria</span>
                 <span>Preço</span>
                 <span>Saldo</span>
-                {user?.role === "admin" ? <span>Ações</span> : null}
+                <span>Ações</span>
               </div>
               <ul className="divide-y divide-stone-200">
                 {visibleProducts.map((product) => {
@@ -348,7 +377,7 @@ export function ProductList() {
                   const categoryName = categoriesById.get(product.category_id) ?? "Sem categoria";
 
                   return (
-                    <li className={`grid gap-5 px-5 py-5 transition hover:bg-stone-50/80 sm:px-6 md:items-center ${user?.role === "admin" ? "md:grid-cols-[minmax(220px,2fr)_1fr_0.8fr_0.8fr_auto]" : "md:grid-cols-[minmax(220px,2fr)_1fr_0.8fr_0.8fr]"}`} key={product.id}>
+                    <li className="grid gap-5 px-5 py-5 transition hover:bg-stone-50/80 sm:px-6 md:grid-cols-[minmax(220px,2fr)_1fr_0.8fr_0.8fr_132px] md:items-center" key={product.id}>
                       <div className="flex min-w-0 items-center gap-3">
                         <span className="grid size-10 shrink-0 place-items-center rounded-lg border border-stone-300 bg-stone-100 font-display text-lg font-bold uppercase text-stone-600">
                           {product.name.slice(0, 2)}
@@ -378,34 +407,38 @@ export function ProductList() {
                         </div>
                         <p className="mt-1 text-[11px] text-stone-400">mín. {product.low_stock_threshold}</p>
                       </div>
-                      {user?.role === "admin" ? (
-                        <div className="flex items-center gap-3 md:justify-end">
-                          <button
-                            className="text-xs font-semibold text-emerald-800 underline decoration-emerald-800/30 underline-offset-4 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700"
-                            onClick={() => {
-                              setActionError(null);
-                              setProductToDelete(null);
-                              setShowCreateForm(false);
-                              setEditingProduct(product);
-                            }}
-                            type="button"
-                          >
-                            Editar
-                          </button>
-                          <button
-                            className="text-xs font-semibold text-rose-700 underline decoration-rose-700/30 underline-offset-4 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rose-700"
-                            onClick={() => {
-                              setActionError(null);
-                              setEditingProduct(null);
-                              setShowCreateForm(false);
-                              setProductToDelete(product);
-                            }}
-                            type="button"
-                          >
-                            Excluir
-                          </button>
-                        </div>
-                      ) : null}
+                      <div className="flex items-center gap-3 md:justify-end">
+                        <AdminAction
+                          blockedClassName="inline-flex items-center gap-1 text-xs font-semibold text-stone-400 transition hover:text-stone-600 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-stone-600"
+                          className="text-xs font-semibold text-emerald-800 underline decoration-emerald-800/30 underline-offset-4 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700"
+                          isAdmin={isAdmin}
+                          onBlocked={showRestriction}
+                          onClick={() => {
+                            setRestrictionMessage(null);
+                            setActionError(null);
+                            setProductToDelete(null);
+                            setShowCreateForm(false);
+                            setEditingProduct(product);
+                          }}
+                        >
+                          Editar
+                        </AdminAction>
+                        <AdminAction
+                          blockedClassName="inline-flex items-center gap-1 text-xs font-semibold text-stone-400 transition hover:text-stone-600 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-stone-600"
+                          className="text-xs font-semibold text-rose-700 underline decoration-rose-700/30 underline-offset-4 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rose-700"
+                          isAdmin={isAdmin}
+                          onBlocked={showRestriction}
+                          onClick={() => {
+                            setRestrictionMessage(null);
+                            setActionError(null);
+                            setEditingProduct(null);
+                            setShowCreateForm(false);
+                            setProductToDelete(product);
+                          }}
+                        >
+                          Excluir
+                        </AdminAction>
+                      </div>
                     </li>
                   );
                 })}

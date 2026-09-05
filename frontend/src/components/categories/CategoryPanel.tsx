@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 
+import { AdminAction } from "@/components/auth/AdminAction";
 import { useAuth } from "@/context/AuthProvider";
 import {
   ApiError,
@@ -13,6 +14,7 @@ import {
   type Category,
   type Product,
 } from "@/lib/api";
+import { ADMIN_ONLY_NOTICE, describeMutationError } from "@/lib/permissions";
 
 function describeError(error: unknown): string {
   if (error instanceof ApiError) return error.message;
@@ -40,6 +42,15 @@ export function CategoryPanel() {
   const [requestKey, setRequestKey] = useState(0);
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const [restrictionMessage, setRestrictionMessage] = useState<string | null>(null);
+
+  const isAdmin = user?.role === "admin";
+
+  function showRestriction() {
+    setActionErrorMessage(null);
+    setSuccessMessage(null);
+    setRestrictionMessage(ADMIN_ONLY_NOTICE);
+  }
 
   useEffect(() => {
     const controller = new AbortController();
@@ -107,9 +118,10 @@ export function CategoryPanel() {
       );
     } catch (error: unknown) {
       setActionErrorMessage(
-        error instanceof ApiError
-          ? error.message
-          : `Não foi possível ${editingCategory ? "salvar a categoria" : "cadastrar a categoria"}. Verifique a conexão e tente novamente.`,
+        describeMutationError(
+          error,
+          `Não foi possível ${editingCategory ? "salvar a categoria" : "cadastrar a categoria"}. Verifique a conexão e tente novamente.`,
+        ),
       );
     } finally {
       setIsSubmitting(false);
@@ -146,9 +158,10 @@ export function CategoryPanel() {
       setCategoryToDelete(null);
     } catch (error: unknown) {
       setActionErrorMessage(
-        error instanceof ApiError
-          ? error.message
-          : "Não foi possível excluir a categoria. Verifique a conexão e tente novamente.",
+        describeMutationError(
+          error,
+          "Não foi possível excluir a categoria. Verifique a conexão e tente novamente.",
+        ),
       );
     } finally {
       setDeletingCategoryId(null);
@@ -169,23 +182,24 @@ export function CategoryPanel() {
           </p>
         </div>
         <div className="flex flex-wrap gap-2 self-start sm:self-auto">
-          {user?.role === "admin" ? (
-            <button
-              aria-expanded={showCreateForm}
-              className="inline-flex h-9 items-center justify-center rounded-lg bg-[#17201d] px-4 font-mono text-[10px] font-semibold uppercase tracking-wider text-white shadow-[0_2px_0_#0f8a5f] transition hover:-translate-y-0.5 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700"
-              onClick={() => {
-                setActionErrorMessage(null);
-                setCategoryToDelete(null);
-                setEditingCategory(null);
-                setName("");
-                setSuccessMessage(null);
-                setShowCreateForm((current) => !current);
-              }}
-              type="button"
-            >
-              {showCreateForm ? "Fechar ficha" : "+ Nova categoria"}
-            </button>
-          ) : null}
+          <AdminAction
+            ariaExpanded={showCreateForm}
+            blockedClassName="inline-flex h-9 items-center justify-center gap-1.5 rounded-lg border border-dashed border-stone-400 bg-stone-100 px-4 font-mono text-[10px] font-semibold uppercase tracking-wider text-stone-500 transition hover:border-stone-500 hover:text-stone-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-stone-600"
+            className="inline-flex h-9 items-center justify-center rounded-lg bg-[#17201d] px-4 font-mono text-[10px] font-semibold uppercase tracking-wider text-white shadow-[0_2px_0_#0f8a5f] transition hover:-translate-y-0.5 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700"
+            isAdmin={isAdmin}
+            onBlocked={showRestriction}
+            onClick={() => {
+              setRestrictionMessage(null);
+              setActionErrorMessage(null);
+              setCategoryToDelete(null);
+              setEditingCategory(null);
+              setName("");
+              setSuccessMessage(null);
+              setShowCreateForm((current) => !current);
+            }}
+          >
+            {isAdmin && showCreateForm ? "Fechar ficha" : "+ Nova categoria"}
+          </AdminAction>
           <button
             className="inline-flex h-9 items-center justify-center rounded-lg border border-stone-300 bg-white px-3 font-mono text-[10px] font-semibold uppercase tracking-wider text-stone-600 shadow-sm transition hover:border-stone-400 hover:text-stone-900 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700 disabled:cursor-wait disabled:opacity-50"
             disabled={isLoading}
@@ -197,7 +211,7 @@ export function CategoryPanel() {
         </div>
       </div>
 
-      {showCreateForm && user?.role === "admin" ? (
+      {showCreateForm && isAdmin ? (
         <form
           className="border-b border-stone-300 bg-[#eef2e9] px-5 py-6 sm:px-6"
           onSubmit={handleSubmit}
@@ -248,7 +262,7 @@ export function CategoryPanel() {
         </form>
       ) : null}
 
-      {categoryToDelete && user?.role === "admin" ? (
+      {categoryToDelete && isAdmin ? (
         <div className="flex flex-col gap-4 border-b border-rose-200 bg-rose-50 px-5 py-5 sm:flex-row sm:items-center sm:justify-between sm:px-6">
           <div>
             <p className="font-mono text-[10px] font-semibold uppercase tracking-[0.17em] text-rose-700">
@@ -278,6 +292,22 @@ export function CategoryPanel() {
               Cancelar
             </button>
           </div>
+        </div>
+      ) : null}
+
+      {restrictionMessage ? (
+        <div
+          className="flex flex-wrap items-center justify-between gap-3 border-b border-amber-300 bg-amber-50 px-5 py-3 sm:px-6"
+          role="status"
+        >
+          <p className="text-sm leading-6 text-amber-900">{restrictionMessage}</p>
+          <button
+            className="shrink-0 font-mono text-[10px] font-semibold uppercase tracking-wider text-amber-900 underline decoration-amber-900/30 underline-offset-4 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-800"
+            onClick={() => setRestrictionMessage(null)}
+            type="button"
+          >
+            Entendi
+          </button>
         </div>
       ) : null}
 
@@ -344,38 +374,41 @@ export function CategoryPanel() {
                 <p className="mt-2 text-xs text-stone-500">
                   {productCount} {productCount === 1 ? "produto vinculado" : "produtos vinculados"}
                 </p>
-                {user?.role === "admin" ? (
-                  <div className="mt-5 flex items-center gap-3 border-t border-dashed border-stone-200 pt-4">
-                    <button
-                      className="text-xs font-semibold text-emerald-800 underline decoration-emerald-800/30 underline-offset-4 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700"
-                      onClick={() => startEditing(category)}
-                      type="button"
+                <div className="mt-5 flex items-center gap-3 border-t border-dashed border-stone-200 pt-4">
+                  <AdminAction
+                    blockedClassName="inline-flex items-center gap-1 text-xs font-semibold text-stone-400 transition hover:text-stone-600 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-stone-600"
+                    className="text-xs font-semibold text-emerald-800 underline decoration-emerald-800/30 underline-offset-4 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700"
+                    isAdmin={isAdmin}
+                    onBlocked={showRestriction}
+                    onClick={() => startEditing(category)}
+                  >
+                    Editar
+                  </AdminAction>
+                  {productCount === 0 ? (
+                    <AdminAction
+                      blockedClassName="inline-flex items-center gap-1 text-xs font-semibold text-stone-400 transition hover:text-stone-600 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-stone-600"
+                      className="text-xs font-semibold text-rose-700 underline decoration-rose-700/30 underline-offset-4 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rose-700"
+                      isAdmin={isAdmin}
+                      onBlocked={showRestriction}
+                      onClick={() => {
+                        setRestrictionMessage(null);
+                        closeForm();
+                        setActionErrorMessage(null);
+                        setCategoryToDelete(category);
+                        setSuccessMessage(null);
+                      }}
                     >
-                      Editar
-                    </button>
-                    {productCount === 0 ? (
-                      <button
-                        className="text-xs font-semibold text-rose-700 underline decoration-rose-700/30 underline-offset-4 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rose-700"
-                        onClick={() => {
-                          closeForm();
-                          setActionErrorMessage(null);
-                          setCategoryToDelete(category);
-                          setSuccessMessage(null);
-                        }}
-                        type="button"
-                      >
-                        Excluir
-                      </button>
-                    ) : (
-                      <span
-                        className="font-mono text-[9px] font-semibold uppercase tracking-wider text-stone-400"
-                        title="Remova ou transfira os produtos antes de excluir esta categoria"
-                      >
-                        Em uso · exclusão bloqueada
-                      </span>
-                    )}
-                  </div>
-                ) : null}
+                      Excluir
+                    </AdminAction>
+                  ) : (
+                    <span
+                      className="font-mono text-[9px] font-semibold uppercase tracking-wider text-stone-400"
+                      title="Remova ou transfira os produtos antes de excluir esta categoria"
+                    >
+                      Em uso · exclusão bloqueada
+                    </span>
+                  )}
+                </div>
               </li>
             );
           })}

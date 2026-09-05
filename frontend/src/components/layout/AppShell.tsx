@@ -18,6 +18,7 @@ type IconName =
   | "folder"
   | "logout"
   | "menu"
+  | "lock"
   | "movement"
   | "shield";
 
@@ -118,6 +119,12 @@ function Icon({ name, className = "size-5" }: { name: IconName; className?: stri
     logout: (
       <>
         <path d="M10 5H5v14h5M14 8l4 4-4 4M8 12h10" />
+      </>
+    ),
+    lock: (
+      <>
+        <path d="M6.5 10.5h11v9h-11z" />
+        <path d="M9 10.5V7.8a3 3 0 0 1 6 0v2.7" />
       </>
     ),
     menu: <path d="M4 7h16M4 12h16M4 17h16" />,
@@ -346,10 +353,17 @@ export function AppShell() {
                   {active.intro}
                 </p>
               </div>
-              {isAdmin && (activeSection === "products" || activeSection === "categories") ? (
-                <span className="inline-flex h-10 items-center rounded-lg border border-emerald-700/20 bg-emerald-700/[0.06] px-4 font-mono text-[10px] font-semibold uppercase tracking-wider text-emerald-800">
-                  Edição liberada para admin
-                </span>
+              {activeSection === "products" || activeSection === "categories" ? (
+                isAdmin ? (
+                  <span className="inline-flex h-10 items-center rounded-lg border border-emerald-700/20 bg-emerald-700/[0.06] px-4 font-mono text-[10px] font-semibold uppercase tracking-wider text-emerald-800">
+                    Edição liberada para admin
+                  </span>
+                ) : (
+                  <span className="inline-flex h-10 items-center gap-2 rounded-lg border border-dashed border-stone-400 bg-stone-200/60 px-4 font-mono text-[10px] font-semibold uppercase tracking-wider text-stone-600">
+                    <Icon className="size-3.5" name="lock" />
+                    Cadastro restrito ao admin
+                  </span>
+                )
               ) : null}
             </div>
 

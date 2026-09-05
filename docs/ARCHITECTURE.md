@@ -24,7 +24,10 @@ O shell autenticado está em `components/layout/AppShell.tsx`, que declara as
 seções em `NAV_GROUPS` — a navegação, o cabeçalho e o conteúdo derivam dessa
 mesma estrutura, e um grupo marcado `adminOnly` não é renderizado para operador.
 Produtos e categorias possuem componentes próprios com estados de carregamento,
-erro e vazio, além de mutações visíveis somente para administrador.
+erro e vazio. Os controles de mutação permanecem visíveis para o operador —
+apagados, com cadeado e `aria-disabled` via `components/auth/AdminAction.tsx` —
+e o clique explica a restrição em vez de a ação sumir da tela; `lib/permissions.ts`
+centraliza esse texto e converte um 403 da API na mesma orientação.
 `components/admin/AdminPanel.tsx` concentra a área restrita: identidade da
 sandbox com contagem regressiva a partir de `GET /sessions/me`, matriz de
 permissões por perfil e o reset da sessão. As credenciais demo ficam em
