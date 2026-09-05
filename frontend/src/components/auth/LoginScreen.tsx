@@ -5,21 +5,7 @@ import { useState, type FormEvent } from "react";
 import { AppShell } from "@/components/layout/AppShell";
 import { useAuth } from "@/context/AuthProvider";
 import { ApiError } from "@/lib/api";
-
-const DEMO_PASSWORD = "demo123";
-
-const DEMO_USERS = [
-  {
-    description: "Acesso completo para cadastrar e editar o catálogo.",
-    email: "admin@estoca.demo",
-    label: "Administrador",
-  },
-  {
-    description: "Acesso operacional para consultar e movimentar o estoque.",
-    email: "operador@estoca.demo",
-    label: "Operador",
-  },
-] as const;
+import { DEMO_PASSWORD, DEMO_USERS } from "@/lib/demo-users";
 
 function describeLoginError(error: unknown): string {
   if (error instanceof ApiError) {

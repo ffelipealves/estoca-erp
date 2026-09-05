@@ -15,6 +15,18 @@ export interface SessionBootstrapResponse {
   expires_at: string;
 }
 
+export interface SessionInfo extends SessionBootstrapResponse {
+  created_at: string;
+  last_activity_at: string;
+  ttl_seconds: number;
+}
+
+export interface SessionResetResult {
+  session_id: string;
+  categories_seeded: number;
+  products_seeded: number;
+}
+
 export type UserRole = "admin" | "operador";
 
 export interface AuthUser {
@@ -225,6 +237,16 @@ export function bootstrapSession(
   return apiRequest<SessionBootstrapResponse>("/api/v1/sessions/bootstrap", {
     method: "POST",
     signal,
+  });
+}
+
+export function getSessionInfo(signal?: AbortSignal): Promise<SessionInfo> {
+  return apiRequest<SessionInfo>("/api/v1/sessions/me", { signal });
+}
+
+export function resetSession(): Promise<SessionResetResult> {
+  return apiRequest<SessionResetResult>("/api/v1/sessions/me/reset", {
+    method: "POST",
   });
 }
 

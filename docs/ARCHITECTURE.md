@@ -20,9 +20,15 @@ Next.js App Router. `app/` contém página, layout e estilos globais;
 `context/AuthProvider.tsx` restaura o login durante a aba. `lib/api.ts` centraliza
 cookie, fallback `X-Session-Id`, Bearer token e contratos HTTP.
 
-O shell autenticado está em `components/layout/AppShell.tsx`. Produtos e
-categorias possuem componentes próprios com estados de carregamento, erro e
-vazio, além de mutações visíveis somente para administrador. O resumo do estoque
+O shell autenticado está em `components/layout/AppShell.tsx`, que declara as
+seções em `NAV_GROUPS` — a navegação, o cabeçalho e o conteúdo derivam dessa
+mesma estrutura, e um grupo marcado `adminOnly` não é renderizado para operador.
+Produtos e categorias possuem componentes próprios com estados de carregamento,
+erro e vazio, além de mutações visíveis somente para administrador.
+`components/admin/AdminPanel.tsx` concentra a área restrita: identidade da
+sandbox com contagem regressiva a partir de `GET /sessions/me`, matriz de
+permissões por perfil e o reset da sessão. As credenciais demo ficam em
+`lib/demo-users.ts`, compartilhadas entre a tela de login e o painel. O resumo do estoque
 é derivado no cliente a partir da mesma lista de produtos, sem endpoint ou fonte
 de estado paralela. O saldo do produto é apenas exibido: nenhuma tela de catálogo
 escreve `quantity`; a quantidade inicial e as movimentações continuam passando
@@ -104,7 +110,7 @@ Prefixo `/api/v1`; limpeza interna em `/internal` (`include_in_schema=False`).
 **Sessão** (sem JWT — cookie `estoca_session` ou header `X-Session-Id`)
 - `POST /sessions/bootstrap` — cria sessão + seed se ausente/expirada; senão só atualiza `last_activity_at`. Seta cookie e retorna `session_id` no corpo.
 - `GET /sessions/me` — info da sessão + TTL restante.
-- `POST /sessions/me/reset` — reset da sessão atual (ver AGENTS.md). **Admin only.**
+- `POST /sessions/me/reset` — reset da sessão atual (ver AGENTS.md). **Admin only.** Exposto na aba Administração.
 
 **Auth**
 - `POST /auth/login` — `{email, password}` contra `demo_users` da sessão atual → `{access_token, user}`. JWT: `{sub: user_id, session_id, role, exp: +2h}`.
