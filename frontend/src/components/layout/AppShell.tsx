@@ -66,7 +66,7 @@ const NAV_GROUPS: NavGroup[] = [
       },
       {
         description: "Organização do catálogo",
-        eyebrow: "Dia 12 · Catálogo",
+        eyebrow: "Catálogo · classificação",
         icon: "folder",
         id: "categories",
         intro: "Agrupe os produtos por finalidade para encontrar o estoque mais rápido.",
@@ -79,7 +79,7 @@ const NAV_GROUPS: NavGroup[] = [
     items: [
       {
         description: "Entradas, saídas e ajustes",
-        eyebrow: "Dia 13 · Operação",
+        eyebrow: "Operação · livro de estoque",
         icon: "movement",
         id: "movements",
         intro: "Acompanhe cada alteração de saldo registrada nesta sessão.",
