@@ -1,7 +1,8 @@
 "use client";
 
-import { useMemo, useState, type FormEvent } from "react";
+import { useId, useMemo, useState, type FormEvent } from "react";
 
+import { HelpButton, HelpPanel } from "@/components/common/FieldHelp";
 import {
   ApiError,
   createStockMovement,
@@ -56,6 +57,8 @@ export function MovementForm({ onCancel, onCreated, products }: MovementFormProp
   const [productId, setProductId] = useState(products[0]?.id ?? "");
   const [quantity, setQuantity] = useState("1");
   const [type, setType] = useState<StockMovementType>("entrada");
+  const helpPanelId = useId();
+  const [isHelpOpen, setIsHelpOpen] = useState(false);
 
   const selectedProduct = useMemo(
     () => products.find((product) => product.id === productId) ?? null,
@@ -108,7 +111,7 @@ export function MovementForm({ onCancel, onCreated, products }: MovementFormProp
           Alterar saldo de estoque
         </h2>
         <p className="mt-1 text-sm text-stone-600">
-          Cada lançamento atualiza o produto e grava o saldo resultante no histórico.
+          O saldo do produto muda na hora, e o registro fica no histórico da sessão.
         </p>
       </div>
 
@@ -119,9 +122,26 @@ export function MovementForm({ onCancel, onCreated, products }: MovementFormProp
       ) : (
         <>
           <fieldset className="mt-6">
-            <legend className="font-mono text-[10px] font-semibold uppercase tracking-[0.14em] text-stone-600">
+            <legend className="flex items-center gap-1.5 font-mono text-[10px] font-semibold uppercase tracking-[0.14em] text-stone-600">
               Tipo de operação
+              <HelpButton
+                controls={helpPanelId}
+                isOpen={isHelpOpen}
+                label="o tipo de operação"
+                onClick={() => setIsHelpOpen((current) => !current)}
+              />
             </legend>
+
+            {isHelpOpen ? (
+              <div className="mt-2">
+                <HelpPanel id={helpPanelId}>
+                  Entrada soma e saída retira do saldo atual. Ajuste funciona
+                  diferente: o número que você digitar passa a ser o saldo, sem
+                  somar nem subtrair — é o que se usa depois de uma contagem
+                  física.
+                </HelpPanel>
+              </div>
+            ) : null}
             <div className="mt-2 grid gap-2 sm:grid-cols-3">
               {movementOptions.map((option) => (
                 <label

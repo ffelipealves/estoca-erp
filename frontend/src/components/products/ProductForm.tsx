@@ -1,7 +1,8 @@
 "use client";
 
-import { useState, type FormEvent } from "react";
+import { useId, useState, type FormEvent } from "react";
 
+import { HelpButton, HelpPanel } from "@/components/common/FieldHelp";
 import {
   ApiError,
   createProduct,
@@ -39,6 +40,14 @@ function describeError(error: unknown, isEditing: boolean): string {
   if (error instanceof ApiError) return error.message;
   return `Não foi possível ${isEditing ? "salvar as alterações" : "cadastrar o produto"}. Verifique a conexão e tente novamente.`;
 }
+
+const FIELD_HELP: Record<string, string> = {
+  lowStock:
+    "Quando o saldo chegar a este número ou menos, o produto ganha o selo “Baixo” na lista e entra na fila de reposição do Painel.",
+  quantity:
+    "Vira o primeiro registro do histórico deste produto. Depois disso o saldo só muda por entradas, saídas e ajustes.",
+  sku: "Código que identifica o produto. Não pode se repetir dentro desta sandbox, e serve para encontrá-lo na busca.",
+};
 
 export function ProductForm({ categories, onCancel, onSaved, product }: ProductFormProps) {
   const isEditing = Boolean(product);
@@ -86,6 +95,11 @@ export function ProductForm({ categories, onCancel, onSaved, product }: ProductF
 
   const fieldClassName =
     "mt-2 h-11 w-full rounded-lg border border-stone-300 bg-white px-3 text-sm text-stone-900 outline-none transition placeholder:text-stone-400 focus:border-emerald-700 focus:ring-2 focus:ring-emerald-700/10 disabled:cursor-not-allowed disabled:bg-stone-100";
+  const helpPanelId = useId();
+  const [openHelp, setOpenHelp] = useState<string | null>(null);
+  const toggleHelp = (key: string) =>
+    setOpenHelp((current) => (current === key ? null : key));
+
   const labelClassName =
     "font-mono text-[10px] font-semibold uppercase tracking-[0.14em] text-stone-600";
 
@@ -103,8 +117,8 @@ export function ProductForm({ categories, onCancel, onSaved, product }: ProductF
         </h2>
         <p className="mt-1 text-sm text-stone-600">
           {isEditing
-            ? "Altere os dados cadastrais. O saldo continua controlado pelas movimentações."
-            : "A quantidade inicial gera automaticamente a primeira movimentação."}
+            ? "Aqui você altera o cadastro. Para mudar o saldo, use Movimentações."
+            : "O produto entra no catálogo já com o saldo que você informar."}
         </p>
       </div>
 
@@ -129,7 +143,15 @@ export function ProductForm({ categories, onCancel, onSaved, product }: ProductF
           </label>
 
           <label className="lg:col-span-2">
-            <span className={labelClassName}>SKU</span>
+            <span className={`${labelClassName} flex items-center gap-1.5`}>
+              SKU
+              <HelpButton
+                controls={helpPanelId}
+                isOpen={openHelp === "sku"}
+                label="o SKU"
+                onClick={() => toggleHelp("sku")}
+              />
+            </span>
             <input
               autoCapitalize="characters"
               className={`${fieldClassName} font-mono uppercase`}
@@ -182,7 +204,15 @@ export function ProductForm({ categories, onCancel, onSaved, product }: ProductF
 
           {!isEditing ? (
             <label className="lg:col-span-2">
-              <span className={labelClassName}>Quantidade inicial</span>
+              <span className={`${labelClassName} flex items-center gap-1.5`}>
+                Quantidade inicial
+                <HelpButton
+                  controls={helpPanelId}
+                  isOpen={openHelp === "quantity"}
+                  label="a quantidade inicial"
+                  onClick={() => toggleHelp("quantity")}
+                />
+              </span>
               <input
                 className={fieldClassName}
                 disabled={isSubmitting}
@@ -197,7 +227,15 @@ export function ProductForm({ categories, onCancel, onSaved, product }: ProductF
           ) : null}
 
           <label className="lg:col-span-2">
-            <span className={labelClassName}>Avisar estoque abaixo de</span>
+            <span className={`${labelClassName} flex items-center gap-1.5`}>
+              Avisar estoque abaixo de
+              <HelpButton
+                controls={helpPanelId}
+                isOpen={openHelp === "lowStock"}
+                label="o aviso de estoque baixo"
+                onClick={() => toggleHelp("lowStock")}
+              />
+            </span>
             <input
               className={fieldClassName}
               disabled={isSubmitting}
@@ -209,6 +247,12 @@ export function ProductForm({ categories, onCancel, onSaved, product }: ProductF
               value={values.lowStockThreshold}
             />
           </label>
+
+          {openHelp ? (
+            <div className="col-span-full">
+              <HelpPanel id={helpPanelId}>{FIELD_HELP[openHelp]}</HelpPanel>
+            </div>
+          ) : null}
         </div>
       )}
 
