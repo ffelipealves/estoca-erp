@@ -30,16 +30,50 @@ produtos, saldos variados e 23 movimentações de exemplo. Há entradas, saídas
 um ajuste de inventário e produtos abaixo do estoque mínimo. O administrador
 pode restaurar esse estado inicial usando o reset da sessão.
 
+## Telas
+
+O painel reúne o fechamento da sessão, a evolução do saldo ao longo do tempo e a
+composição do valor por categoria. Os gráficos são desenhados em SVG e CSS, sem
+biblioteca:
+
+![Painel do administrador](docs/screenshots/02-painel-admin.png)
+
+O catálogo tem ordenação por coluna, filtro por categoria e recorte de itens
+abaixo do estoque mínimo:
+
+![Catálogo de produtos](docs/screenshots/03-produtos-admin.png)
+
+O mesmo catálogo visto pelo operador. Os controles de cadastro continuam na
+tela, marcados com cadeado, e o clique explica a restrição — o backend responde
+403 mesmo que a interface seja contornada:
+
+![Catálogo visto pelo operador](docs/screenshots/10-operador-acao-restrita.png)
+
+A área restrita mostra a identidade da sandbox, o que cada perfil pode fazer e o
+reset da demonstração:
+
+![Área de administração](docs/screenshots/08-administracao.png)
+
+As doze capturas, incluindo formulários, ajuda contextual e a versão para
+celular, estão em [`docs/screenshots/`](docs/screenshots/) e são geradas por
+`npm run screenshots`.
+
 ## O que está pronto
 
 - Sandbox isolada por visitante, com expiração e limpeza automática.
-- Login com perfis de administrador e operador.
-- CRUD de produtos e categorias com busca e indicação de estoque baixo.
-- Entrada, saída e ajuste absoluto de estoque com histórico paginado.
-- Catálogo inicial realista com 16 produtos e 23 movimentações por sessão.
+- Login com perfis de administrador e operador. O bloqueio fica visível na
+  interface e é aplicado pelo backend a cada requisição.
+- Painel com fechamento do estoque, evolução do saldo no tempo e valor por
+  categoria.
+- CRUD de produtos e categorias, com busca, ordenação por coluna e filtros por
+  categoria e por estoque abaixo do mínimo.
+- Entrada, saída e ajuste absoluto de estoque, com histórico paginado e filtros
+  por produto, tipo de operação e período.
+- Área de administração com identidade da sandbox, matriz de permissões por
+  perfil e reset da sessão sem deslogar.
+- Catálogo inicial realista com 16 produtos e 23 movimentações distribuídas ao
+  longo de 14 dias.
 - Bloqueio de saída sem saldo e atualização atômica do produto e do histórico.
-- Fechamento do estoque com valor armazenado, unidades, categorias ativas e
-  fila de reposição por urgência.
 - Interface responsiva validada em produção no Chrome e no WebKit em viewport
   de iPhone.
 
@@ -76,6 +110,17 @@ separados.
   `Decimal` no backend.
 - **Limpeza por cascade:** os jobs removem sessões; o PostgreSQL apaga os dados
   relacionados por `ON DELETE CASCADE`.
+- **Histórico com linha do tempo real:** o seed distribui as movimentações ao
+  longo de 14 dias. O seed roda em uma transação e `created_at` usa
+  `server_default=func.now()`, que no PostgreSQL é o horário da *transação* —
+  sem essa passada, todas nasceriam com o mesmo carimbo e nem a série histórica
+  nem o filtro por período teriam o que mostrar.
+- **Agregação no banco:** a série de saldo sai de uma consulta só.
+  `resulting_quantity` é o saldo de um produto, então `LAG` particionado por
+  produto extrai o delta de cada evento e a soma corrente reconstrói o total.
+- **Gráficos sem dependência:** desenhados em SVG e CSS, com a série de saldo em
+  degrau — o saldo muda no evento e se mantém até o próximo, e interpolar
+  afirmaria uma variação contínua que não aconteceu.
 
 O modelo de dados, os endpoints e os detalhes das camadas estão em
 [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md). A configuração dos ambientes
@@ -143,6 +188,15 @@ O teste WebKit roda contra a produção por padrão, remove os cookies e confirm
 que bootstrap após recarga, login e movimentação preservam a mesma sandbox pelo
 header `X-Session-Id`.
 
+As capturas da documentação também são geradas por script, contra uma sandbox
+recém-criada, então refletem sempre o mesmo catálogo inicial:
+
+```bash
+cd frontend
+npm run screenshots                      # contra a produção
+BASE_URL=http://localhost:3000 npm run screenshots
+```
+
 ## Hospedagem e automações
 
 O ambiente foi desenhado para custar **US$ 0/mês e não exigir cartão de
@@ -164,7 +218,7 @@ sandboxes diariamente. Ambos autenticam as chamadas internas com
 - Múltiplos depósitos.
 - Refresh token e rate limit para criação de sessões.
 - Ampliar os testes E2E para o CRUD completo e outros tamanhos de tela.
-- Adicionar visualizações históricas de estoque usando o seed já disponível.
+- Exportação do histórico em CSV.
 
 O histórico do projeto e os critérios de cada etapa estão em
 [`docs/ROADMAP.md`](docs/ROADMAP.md).

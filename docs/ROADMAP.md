@@ -4,7 +4,7 @@ Cronograma de 14 dias, part-time, a partir de 2026-08-25. Cada dia deste roadmap
 
 ## Status atual
 
-**Dias 1 a 14 — concluídos.** O núcleo do Estoca está publicado em `https://estoca-erp.vercel.app`, com a API em `https://estoca-api.onrender.com` e PostgreSQL no Neon. Bootstrap, login, catálogo e movimentações foram validados em produção; o fallback sem cookie passou no WebKit 26.5 em viewport de iPhone, e os dois workflows de limpeza passaram via `workflow_dispatch`. O Dia 14 adicionou o fechamento do estoque com valor armazenado, unidades, categorias ativas e fila de reposição, validado visualmente em desktop e mobile. O gráfico foi cortado dentro do timebox, sem deixar interface incompleta visível. Em um incremento pós-roadmap, o seed foi ampliado para 16 produtos e 23 movimentações por sessão, e Render e Neon foram alinhados na região de Oregon. O README final registra arquitetura, decisões, execução local, verificações, hospedagem e próximos passos.
+**Dias 1 a 14 — concluídos.** O núcleo do Estoca está publicado em `https://estoca-erp.vercel.app`, com a API em `https://estoca-api.onrender.com` e PostgreSQL no Neon. Bootstrap, login, catálogo e movimentações foram validados em produção; o fallback sem cookie passou no WebKit 26.5 em viewport de iPhone, e os dois workflows de limpeza passaram via `workflow_dispatch`. O Dia 14 adicionou o fechamento do estoque com valor armazenado, unidades, categorias ativas e fila de reposição, validado visualmente em desktop e mobile. O gráfico foi cortado dentro do timebox, sem deixar interface incompleta visível — e entregue depois, na sequência descrita em "Depois do roadmap". Em um incremento pós-roadmap, o seed foi ampliado para 16 produtos e 23 movimentações por sessão, e Render e Neon foram alinhados na região de Oregon. O README final registra arquitetura, decisões, execução local, verificações, hospedagem e próximos passos.
 
 ## Dias
 
@@ -26,6 +26,22 @@ Cronograma de 14 dias, part-time, a partir de 2026-08-25. Cada dia deste roadmap
 | 14 | Se sobrou tempo: sprint 2 timeboxed (cards de resumo + lista de estoque baixo + gráfico com recharts). Reservar o fim do dia pro `README.md` final (arquitetura, decisões, como rodar local, próximos passos). | README cobre arquitetura + como rodar local; sprint 2 implementado até onde o tempo permitiu, sem deixar nada pela metade visível na UI. |
 
 Se atrasar: cortar primeiro o gráfico do dashboard, depois o dashboard inteiro — manter o badge de estoque baixo se der (barato, bom impacto visual). Núcleo (dias 1-13) não é negociável; sprint 2 (dia 14) é.
+
+## Depois do roadmap
+
+Incrementos entregues após o Dia 14, cada um publicado e verificado em produção.
+
+| # | Entrega | O que envolveu |
+|---|---|---|
+| 1 | Aba de administração | Expõe `POST /sessions/me/reset`, que já existia no backend testado mas nunca teve interface. Reúne identidade da sandbox com contagem regressiva, matriz de permissões e reset com confirmação. |
+| 2 | Bloqueio visível para o operador | Os controles de mutação deixam de sumir e passam a aparecer apagados, com cadeado; o clique explica a restrição. Antes, quem entrava como operador não tinha como perceber que o sistema tem RBAC. |
+| 3 | Ordenação e filtros no catálogo | Cabeçalhos ordenáveis e filtros por categoria e estoque mínimo, no cliente — o teto é de 50 produtos e a lista já está em memória. |
+| 4 | Filtros de movimentação | `type` e o período `date_from`/`date_to` no backend, com testes. Instantes ISO 8601, com a conversão do dia civil no navegador, que é quem conhece o fuso. |
+| 5a | Aba Painel | O fechamento do estoque ganha seção própria e vira a tela inicial; Produtos fica como catálogo puro, sem a rolagem longa antes da tabela. |
+| 5b | Valor por categoria | Barra horizontal derivada de `GET /products`. A soma das barras fecha com o valor armazenado do card acima. |
+| 5c | Evolução do saldo | `GET /stock-movements/balance-timeline` reconstrói o saldo total por evento com `LAG` + soma corrente. Exigiu antes espalhar os carimbos do seed, que nasciam todos iguais. |
+| — | Faxina de interface | Remove marcadores do cronograma, pseudo-códigos que pareciam identificadores e jargão que escondia a ação dos botões; textos de ajuda passam a explicar o efeito, atrás de botões "?". |
+| — | Capturas de tela | `npm run screenshots` gera as doze imagens de `docs/screenshots/` com Playwright, contra uma sandbox recém-criada. |
 
 ## Próximos passos fora do escopo das 2 semanas
 
