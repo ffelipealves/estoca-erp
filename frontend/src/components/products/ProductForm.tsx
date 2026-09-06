@@ -94,27 +94,18 @@ export function ProductForm({ categories, onCancel, onSaved, product }: ProductF
       className="border-b border-stone-300 bg-[#eef2e9] px-5 py-6 sm:px-6"
       onSubmit={handleSubmit}
     >
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-        <div>
-          <p className="font-mono text-[10px] font-semibold uppercase tracking-[0.17em] text-emerald-800">
-            {isEditing ? `Ficha de revisão · ${product?.sku}` : "Ficha de entrada · novo item"}
-          </p>
-          <h2 className="mt-1 font-display text-2xl font-bold text-[#17201d]">
-            {isEditing ? "Editar produto" : "Cadastrar produto"}
-          </h2>
-          <p className="mt-1 text-sm text-stone-600">
-            {isEditing
-              ? "Altere os dados cadastrais. O saldo continua controlado pelas movimentações."
-              : "A quantidade inicial gera automaticamente a primeira movimentação."}
-          </p>
-        </div>
-        <button
-          className="self-start text-sm font-semibold text-stone-500 underline decoration-stone-400/50 underline-offset-4 transition hover:text-stone-900 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700"
-          onClick={onCancel}
-          type="button"
-        >
-          Fechar ficha
-        </button>
+      <div>
+        <p className="font-mono text-[10px] font-semibold uppercase tracking-[0.17em] text-emerald-800">
+          {isEditing ? `Editando · ${product?.sku}` : "Novo produto"}
+        </p>
+        <h2 className="mt-1 font-display text-2xl font-bold text-[#17201d]">
+          {isEditing ? "Editar produto" : "Cadastrar produto"}
+        </h2>
+        <p className="mt-1 text-sm text-stone-600">
+          {isEditing
+            ? "Altere os dados cadastrais. O saldo continua controlado pelas movimentações."
+            : "A quantidade inicial gera automaticamente a primeira movimentação."}
+        </p>
       </div>
 
       {categories.length === 0 ? (

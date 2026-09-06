@@ -203,7 +203,7 @@ export function MovementList() {
             }}
             type="button"
           >
-            {showCreateForm ? "Fechar ordem" : "+ Nova movimentação"}
+            {showCreateForm ? "Fechar formulário" : "+ Nova movimentação"}
           </button>
           <button
             className="inline-flex h-9 items-center justify-center rounded-lg border border-stone-300 bg-white px-3 font-mono text-[10px] font-semibold uppercase tracking-wider text-stone-600 shadow-sm transition hover:border-stone-400 hover:text-stone-900 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700 disabled:cursor-wait disabled:opacity-50"

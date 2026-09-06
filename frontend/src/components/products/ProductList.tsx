@@ -311,7 +311,7 @@ export function ProductList() {
       <div className="flex flex-col gap-4 border-b border-dashed border-stone-300 bg-stone-100/70 px-5 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-6">
         <div>
           <p className="font-mono text-[10px] font-semibold uppercase tracking-[0.17em] text-stone-500">
-            Romaneio atual
+            Estoque atual
           </p>
           <p className="mt-1 text-sm text-stone-600" aria-live="polite">
             {isLoading
@@ -334,7 +334,7 @@ export function ProductList() {
               setShowCreateForm((current) => !current);
             }}
           >
-            {isAdmin && showCreateForm ? "Fechar ficha" : "+ Novo produto"}
+            {isAdmin && showCreateForm ? "Fechar formulário" : "+ Novo produto"}
           </AdminAction>
           <button
             className="inline-flex h-9 items-center justify-center gap-2 rounded-lg border border-stone-300 bg-white px-3 font-mono text-[10px] font-semibold uppercase tracking-wider text-stone-600 shadow-sm transition hover:border-stone-400 hover:text-stone-900 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700 disabled:cursor-wait disabled:opacity-50"
@@ -373,7 +373,7 @@ export function ProductList() {
         <div className="flex flex-col gap-4 border-b border-rose-200 bg-rose-50 px-5 py-5 sm:flex-row sm:items-center sm:justify-between sm:px-6">
           <div>
             <p className="font-mono text-[10px] font-semibold uppercase tracking-[0.17em] text-rose-700">
-              Baixa definitiva · {productToDelete.sku}
+              Exclusão definitiva · {productToDelete.sku}
             </p>
             <p className="mt-1 text-sm font-semibold text-rose-950">
               Excluir {productToDelete.name} e todo o histórico de movimentações vinculado?

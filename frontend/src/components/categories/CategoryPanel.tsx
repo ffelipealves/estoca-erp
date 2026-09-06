@@ -173,7 +173,7 @@ export function CategoryPanel() {
       <div className="flex flex-col gap-4 border-b border-dashed border-stone-300 bg-stone-100/70 px-5 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-6">
         <div>
           <p className="font-mono text-[10px] font-semibold uppercase tracking-[0.17em] text-stone-500">
-            Etiquetas de prateleira
+            Categorias cadastradas
           </p>
           <p className="mt-1 text-sm text-stone-600" aria-live="polite">
             {isLoading
@@ -198,7 +198,7 @@ export function CategoryPanel() {
               setShowCreateForm((current) => !current);
             }}
           >
-            {isAdmin && showCreateForm ? "Fechar ficha" : "+ Nova categoria"}
+            {isAdmin && showCreateForm ? "Fechar formulário" : "+ Nova categoria"}
           </AdminAction>
           <button
             className="inline-flex h-9 items-center justify-center rounded-lg border border-stone-300 bg-white px-3 font-mono text-[10px] font-semibold uppercase tracking-wider text-stone-600 shadow-sm transition hover:border-stone-400 hover:text-stone-900 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700 disabled:cursor-wait disabled:opacity-50"
@@ -218,8 +218,8 @@ export function CategoryPanel() {
         >
           <p className="font-mono text-[10px] font-semibold uppercase tracking-[0.17em] text-emerald-800">
             {editingCategory
-              ? `Revisão de etiqueta · ${editingCategory.name}`
-              : "Nova etiqueta · classificação"}
+              ? `Editando · ${editingCategory.name}`
+              : "Nova categoria"}
           </p>
           <div className="mt-3 flex max-w-2xl flex-col gap-3 sm:flex-row sm:items-end">
             <label className="flex-1">
@@ -266,7 +266,7 @@ export function CategoryPanel() {
         <div className="flex flex-col gap-4 border-b border-rose-200 bg-rose-50 px-5 py-5 sm:flex-row sm:items-center sm:justify-between sm:px-6">
           <div>
             <p className="font-mono text-[10px] font-semibold uppercase tracking-[0.17em] text-rose-700">
-              Descartar etiqueta · categoria vazia
+              Excluir categoria · sem produtos vinculados
             </p>
             <p className="mt-1 text-sm font-semibold text-rose-950">
               Excluir a categoria {categoryToDelete.name}?
@@ -341,7 +341,7 @@ export function CategoryPanel() {
         <div className="grid min-h-72 place-items-center px-6 py-12 text-center">
           <div className="max-w-sm">
             <p className="font-mono text-[10px] font-semibold uppercase tracking-[0.17em] text-emerald-800">
-              Catálogo sem etiquetas
+              Catálogo sem categorias
             </p>
             <h2 className="mt-3 font-display text-3xl font-bold text-[#17201d]">
               Crie a primeira categoria

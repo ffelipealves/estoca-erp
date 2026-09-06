@@ -44,7 +44,7 @@ const NAV_GROUPS: NavGroup[] = [
     items: [
       {
         description: "Resumo da sessão",
-        eyebrow: "Fechamento · sessão atual",
+        eyebrow: "Sandbox · visão geral",
         icon: "dashboard",
         id: "dashboard",
         intro:
@@ -79,7 +79,7 @@ const NAV_GROUPS: NavGroup[] = [
     items: [
       {
         description: "Entradas, saídas e ajustes",
-        eyebrow: "Operação · livro de estoque",
+        eyebrow: "Operação · histórico da sessão",
         icon: "movement",
         id: "movements",
         intro: "Acompanhe cada alteração de saldo registrada nesta sessão.",
