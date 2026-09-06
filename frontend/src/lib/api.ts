@@ -99,6 +99,15 @@ export interface StockMovementPage {
   pages: number;
 }
 
+export interface StockBalancePoint {
+  at: string;
+  total_quantity: number;
+}
+
+export interface StockBalanceTimeline {
+  points: StockBalancePoint[];
+}
+
 export interface StockMovementCreateInput {
   product_id: string;
   type: StockMovementType;
@@ -336,6 +345,15 @@ export function listStockMovements(
 
   return apiRequest<StockMovementPage>(
     `/api/v1/stock-movements?${query.toString()}`,
+    { signal },
+  );
+}
+
+export function getBalanceTimeline(
+  signal?: AbortSignal,
+): Promise<StockBalanceTimeline> {
+  return apiRequest<StockBalanceTimeline>(
+    "/api/v1/stock-movements/balance-timeline",
     { signal },
   );
 }

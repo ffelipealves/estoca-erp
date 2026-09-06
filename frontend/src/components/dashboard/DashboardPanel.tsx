@@ -2,14 +2,17 @@
 
 import { useEffect, useState } from "react";
 
+import { BalanceTimelineChart } from "@/components/dashboard/BalanceTimelineChart";
 import { CategoryValueChart } from "@/components/dashboard/CategoryValueChart";
 import { InventorySummary } from "@/components/products/InventorySummary";
 import {
   ApiError,
+  getBalanceTimeline,
   listCategories,
   listProducts,
   type Category,
   type Product,
+  type StockBalancePoint,
 } from "@/lib/api";
 
 function describeError(error: unknown): string {
@@ -68,6 +71,7 @@ export function DashboardPanel() {
   const [isLoading, setIsLoading] = useState(true);
   const [categories, setCategories] = useState<Category[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
+  const [timeline, setTimeline] = useState<StockBalancePoint[]>([]);
   const [requestKey, setRequestKey] = useState(0);
 
   useEffect(() => {
@@ -77,11 +81,13 @@ export function DashboardPanel() {
     void Promise.all([
       listProducts(controller.signal),
       listCategories(controller.signal),
+      getBalanceTimeline(controller.signal),
     ])
-      .then(([loadedProducts, loadedCategories]) => {
+      .then(([loadedProducts, loadedCategories, loadedTimeline]) => {
         if (!active) return;
         setProducts(loadedProducts);
         setCategories(loadedCategories);
+        setTimeline(loadedTimeline.points);
         setIsLoading(false);
       })
       .catch((error: unknown) => {
@@ -160,6 +166,31 @@ export function DashboardPanel() {
   return (
     <>
       <InventorySummary products={products} />
+
+      {/* Menos de dois pontos não é tendência, é um número — que o card acima
+          já mostra. */}
+      {timeline.length >= 2 ? (
+        <section
+          aria-labelledby="balance-timeline-title"
+          className="mt-6 overflow-hidden rounded-2xl border border-stone-300 bg-[#fffdf8] shadow-[0_16px_45px_rgba(46,52,48,0.06)]"
+        >
+          <div className="border-b border-dashed border-stone-300 px-5 py-5 sm:px-6">
+            <p className="font-mono text-[10px] font-semibold uppercase tracking-[0.17em] text-emerald-800">
+              Histórico · unidades em estoque
+            </p>
+            <h2
+              className="mt-1 font-display text-2xl font-bold tracking-tight text-[#17201d]"
+              id="balance-timeline-title"
+            >
+              Evolução do saldo
+            </h2>
+          </div>
+          <div className="px-5 py-5 sm:px-6">
+            <BalanceTimelineChart points={timeline} />
+          </div>
+        </section>
+      ) : null}
+
       <CategoryValueChart categories={categories} products={products} />
     </>
   );

@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from math import ceil
@@ -14,6 +16,12 @@ from app.repositories.session_repository import SessionRepository
 from app.repositories.stock_movement_repository import StockMovementRepository
 
 MAX_MOVEMENTS_PER_SESSION = 500
+
+
+@dataclass(frozen=True, slots=True)
+class BalancePoint:
+    at: datetime
+    total_quantity: int
 
 
 @dataclass(frozen=True, slots=True)
@@ -69,6 +77,10 @@ class StockMovementService:
             page_size=page_size,
             total=total,
         )
+
+    async def balance_timeline(self, session_id: UUID) -> list[BalancePoint]:
+        rows = await self.movements.balance_timeline(session_id)
+        return [BalancePoint(at=at, total_quantity=total) for at, total in rows]
 
     @staticmethod
     def _as_utc(moment: datetime | None) -> datetime | None:

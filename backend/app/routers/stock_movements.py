@@ -7,6 +7,8 @@ from fastapi import APIRouter, Query, status
 from app.core.deps import CurrentUser, DbSession
 from app.models.enums import StockMovementType
 from app.schemas.stock_movement import (
+    StockBalancePoint,
+    StockBalanceTimeline,
     StockMovementCreate,
     StockMovementPage,
     StockMovementResponse,
@@ -71,4 +73,18 @@ async def list_stock_movements(
         page_size=result.page_size,
         total=result.total,
         pages=result.pages,
+    )
+
+
+@router.get("/balance-timeline", response_model=StockBalanceTimeline)
+async def get_balance_timeline(
+    current_user: CurrentUser,
+    db: DbSession,
+) -> StockBalanceTimeline:
+    points = await StockMovementService(db).balance_timeline(current_user.session_id)
+    return StockBalanceTimeline(
+        points=[
+            StockBalancePoint(at=point.at, total_quantity=point.total_quantity)
+            for point in points
+        ]
     )

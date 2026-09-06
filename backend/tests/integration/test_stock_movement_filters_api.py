@@ -78,13 +78,17 @@ async def test_stock_movement_list_filters_by_type_and_period() -> None:
             )
             assert recent.json()["total"] == 3
 
-            # Uma janela inteiramente no passado não devolve nada.
+            # Uma janela anterior a TODO o histórico não devolve nada. Precisa
+            # ficar antes da janela de 14 dias que o seed ocupa, não só antes das
+            # movimentações criadas acima.
             past = await client.get(
                 "/api/v1/stock-movements",
                 headers=headers,
                 params={
-                    "date_from": (before_new_movements - timedelta(days=2)).isoformat(),
-                    "date_to": (before_new_movements - timedelta(days=1)).isoformat(),
+                    "date_from": (
+                        before_new_movements - timedelta(days=60)
+                    ).isoformat(),
+                    "date_to": (before_new_movements - timedelta(days=30)).isoformat(),
                 },
             )
             assert past.json()["total"] == 0

@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from datetime import UTC, datetime, timedelta
 from decimal import Decimal
 from uuid import UUID
 
@@ -9,12 +10,18 @@ from app.models.category import Category
 from app.models.demo_user import DemoUser
 from app.models.enums import StockMovementType, UserRole
 from app.models.product import Product
+from app.models.stock_movement import StockMovement
 from app.repositories.category_repository import CategoryRepository
 from app.repositories.demo_user_repository import DemoUserRepository
 from app.repositories.product_repository import ProductRepository
 from app.services.stock_movement_service import StockMovementService
 
 DEMO_PASSWORD = "demo123"
+
+# Janela em que o histórico fabricado é distribuído. Termina antes de agora para
+# a última movimentação do seed não competir com as que o visitante registrar.
+HISTORY_WINDOW = timedelta(days=14)
+HISTORY_ENDS_BEFORE_NOW = timedelta(hours=2)
 
 CATEGORY_NAMES = (
     "Alimentos",
@@ -62,6 +69,7 @@ class SeedResult:
 
 class SeedService:
     def __init__(self, db: AsyncSession) -> None:
+        self.db = db
         self.categories = CategoryRepository(db)
         self.products = ProductRepository(db)
         self.users = DemoUserRepository(db)
@@ -133,6 +141,10 @@ class SeedService:
             raise RuntimeError("Usuários demo ausentes durante a criação do seed")
 
         products_by_sku = {product.sku: product for product in products}
+        # A ordem desta lista é a linha do tempo do histórico: primeiro o estoque
+        # inicial de cada produto, depois as movimentações do dia a dia.
+        history: list[StockMovement] = []
+
         for (
             _category_name,
             _name,
@@ -141,22 +153,57 @@ class SeedService:
             _threshold,
             initial_quantity,
         ) in PRODUCT_SEEDS:
-            await self.stock_movements.record_initial_stock(
-                session_id=session_id,
-                product=products_by_sku[sku],
-                performed_by_user_id=admin.id,
-                quantity=initial_quantity,
+            history.append(
+                await self.stock_movements.record_initial_stock(
+                    session_id=session_id,
+                    product=products_by_sku[sku],
+                    performed_by_user_id=admin.id,
+                    quantity=initial_quantity,
+                )
             )
 
         for sku, movement_type, quantity, note in MOVEMENT_SEEDS:
-            await self.stock_movements.create(
-                session_id=session_id,
-                product_id=products_by_sku[sku].id,
-                performed_by_user_id=operator.id,
-                movement_type=movement_type,
-                quantity=quantity,
-                note=note,
+            history.append(
+                await self.stock_movements.create(
+                    session_id=session_id,
+                    product_id=products_by_sku[sku].id,
+                    performed_by_user_id=operator.id,
+                    movement_type=movement_type,
+                    quantity=quantity,
+                    note=note,
+                )
             )
+
+        await self._spread_history_over_time(history)
+
+    async def _spread_history_over_time(
+        self,
+        history: list[StockMovement],
+    ) -> None:
+        """Distribui o histórico fabricado ao longo de `HISTORY_WINDOW`.
+
+        O seed roda inteiro em uma transação e `created_at` usa
+        `server_default=func.now()` — que no Postgres é o horário da *transação*.
+        Sem esta passada, as movimentações nasceriam todas com o mesmo carimbo:
+        a linha do tempo desaparece e o filtro por período não tem o que filtrar.
+
+        Isto não afrouxa o invariante de que `created_at` é gerado no servidor:
+        quem fabrica a data aqui é o próprio servidor montando a sandbox, e
+        `POST /stock-movements` continua recusando o campo vindo do cliente.
+        A expiração de sessão não é afetada — ela olha `sessions`, não estas
+        linhas.
+        """
+        if not history:
+            return
+
+        end = datetime.now(UTC) - HISTORY_ENDS_BEFORE_NOW
+        start = end - HISTORY_WINDOW
+        step = (end - start) / max(len(history) - 1, 1)
+
+        for index, movement in enumerate(history):
+            movement.created_at = start + step * index
+
+        await self.db.flush()
 
     async def _create_users(self, session_id: UUID) -> int:
         users = [

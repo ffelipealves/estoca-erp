@@ -41,3 +41,12 @@ class StockMovementPage(BaseModel):
     page_size: int
     total: int
     pages: int
+
+
+class StockBalancePoint(BaseModel):
+    at: datetime
+    total_quantity: int
+
+
+class StockBalanceTimeline(BaseModel):
+    points: list[StockBalancePoint]

@@ -22,11 +22,17 @@ cookie, fallback `X-Session-Id`, Bearer token e contratos HTTP.
 
 A seção inicial é o Painel (`components/dashboard/DashboardPanel.tsx`), que
 concentra o fechamento da sessão e o gráfico de valor por categoria
-(`CategoryValueChart`, derivado do mesmo `GET /products`); as telas de catálogo e
+(`CategoryValueChart`, derivado do mesmo `GET /products`) e a evolução do saldo
+(`BalanceTimelineChart`, sobre `GET /stock-movements/balance-timeline`); as telas de catálogo e
 operação ficam com os próprios dados, sem resumo embutido. Os gráficos são
-marcação e CSS, sem biblioteca: barra horizontal fina para comparação de
-magnitude, série única em um só tom (`#0f8a5f`, o acento do app, validado contra
-a superfície de papel), rótulos em tokens de texto e nunca na cor da série.
+marcação, CSS e SVG à mão, sem biblioteca: barra horizontal fina para comparação
+de magnitude, série única em um só tom (`#0f8a5f`, o acento do app, validado
+contra a superfície de papel), rótulos em tokens de texto e nunca na cor da
+série. A série histórica é desenhada em **degrau**, não em diagonal: o saldo muda
+no evento e se mantém até o próximo, e interpolar afirmaria uma variação contínua
+que não aconteceu. O SVG mede a largura real do container para os rótulos não
+encolherem, e carrega um `viewBox` correspondente para que uma medição defasada
+escale o desenho em vez de cortá-lo.
 
 O shell autenticado está em `components/layout/AppShell.tsx`, que declara as
 seções em `NAV_GROUPS` — a navegação, o cabeçalho e o conteúdo derivam dessa
@@ -143,6 +149,7 @@ Prefixo `/api/v1`; limpeza interna em `/internal` (`include_in_schema=False`).
 **Categorias / Produtos / Movimentações** (JWT obrigatório)
 - Categorias: `GET/POST /categories`, `GET/PUT/DELETE /categories/{id}` — mutação **admin only**; delete bloqueia (422) se houver produtos vinculados.
 - Produtos: `GET/POST /products` (filtros `category_id`, `search`, `low_stock`; teto de 50/sessão; sku único por sessão), `GET/PUT/DELETE /products/{id}` — mutação **admin only**.
+- Movimentações: `GET /stock-movements/balance-timeline` devolve o saldo total da sessão após cada evento — `LAG` particionado por produto extrai o delta de cada movimentação e a soma corrente reconstrói o total, em uma consulta só. É o único agregado servido pelo backend, e não conflita com a regra do dashboard: são dados de outra natureza, não os números do fechamento.
 - Movimentações: `GET /stock-movements` (paginado; filtros `product_id`, `type` e o período `date_from`/`date_to`, instantes ISO 8601 inclusivos comparados contra `created_at` em UTC — intervalo invertido devolve 422), `POST /stock-movements` — **admin e operador**; teto de 500/sessão.
 
 **Dashboard**: o fechamento do estoque é calculado no frontend a partir de
@@ -186,7 +193,14 @@ em dev, `SESSION_COOKIE_SECURE=false` / `SAMESITE=lax`. O banco de teste
 ## Seed da sandbox
 
 O bootstrap de uma sessão nova e o reset administrativo criam o mesmo estado
-inicial: 4 categorias, 16 produtos, 2 usuários demo e 23 movimentações. Os
+inicial: 4 categorias, 16 produtos, 2 usuários demo e 23 movimentações
+distribuídas ao longo de 14 dias. O seed inteiro roda em uma transação e
+`created_at` usa `server_default=func.now()` — que no Postgres é o horário da
+*transação* —, então sem uma passada explícita de retrodatação as 23
+movimentações nasceriam com o mesmo carimbo: a linha do tempo somem e o filtro
+por período fica sem o que filtrar. A rota pública continua recusando
+`created_at` vindo do cliente; quem fabrica a data aqui é o servidor montando a
+sandbox. A expiração de sessão não é afetada — ela olha `sessions`. Os
 produtos começam com saldos variados; dois produtos ficam abaixo do estoque
 mínimo para alimentar a fila de reposição.
 
@@ -214,5 +228,5 @@ produção que bootstrap após recarga, login e movimentação preservam a sandb
 por `X-Session-Id`. A suíte não roda na CI para evitar o download do navegador
 em todos os pushes.
 
-A suíte atual do backend possui 32 testes. O seed populado, o reset e os
+A suíte atual do backend possui 35 testes. O seed populado, o reset e os
 limites de produtos e movimentações são cobertos contra PostgreSQL real.
