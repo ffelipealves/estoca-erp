@@ -21,8 +21,12 @@ Next.js App Router. `app/` contém página, layout e estilos globais;
 cookie, fallback `X-Session-Id`, Bearer token e contratos HTTP.
 
 A seção inicial é o Painel (`components/dashboard/DashboardPanel.tsx`), que
-concentra o fechamento da sessão; as telas de catálogo e operação ficam com os
-próprios dados, sem resumo embutido.
+concentra o fechamento da sessão e o gráfico de valor por categoria
+(`CategoryValueChart`, derivado do mesmo `GET /products`); as telas de catálogo e
+operação ficam com os próprios dados, sem resumo embutido. Os gráficos são
+marcação e CSS, sem biblioteca: barra horizontal fina para comparação de
+magnitude, série única em um só tom (`#0f8a5f`, o acento do app, validado contra
+a superfície de papel), rótulos em tokens de texto e nunca na cor da série.
 
 O shell autenticado está em `components/layout/AppShell.tsx`, que declara as
 seções em `NAV_GROUPS` — a navegação, o cabeçalho e o conteúdo derivam dessa

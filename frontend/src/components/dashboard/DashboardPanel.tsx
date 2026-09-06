@@ -2,8 +2,15 @@
 
 import { useEffect, useState } from "react";
 
+import { CategoryValueChart } from "@/components/dashboard/CategoryValueChart";
 import { InventorySummary } from "@/components/products/InventorySummary";
-import { ApiError, listProducts, type Product } from "@/lib/api";
+import {
+  ApiError,
+  listCategories,
+  listProducts,
+  type Category,
+  type Product,
+} from "@/lib/api";
 
 function describeError(error: unknown): string {
   if (error instanceof ApiError) return error.message;
@@ -37,9 +44,29 @@ function DashboardSkeleton() {
   );
 }
 
+function ChartSkeleton() {
+  return (
+    <div
+      aria-hidden="true"
+      className="mt-6 animate-pulse overflow-hidden rounded-2xl border border-stone-300 bg-[#fffdf8]"
+    >
+      <div className="border-b border-dashed border-stone-300 px-5 py-5 sm:px-6">
+        <div className="h-3 w-36 rounded bg-stone-200/80" />
+        <div className="mt-3 h-6 w-44 rounded bg-stone-200" />
+      </div>
+      <div className="space-y-5 px-5 py-6 sm:px-6">
+        {[0, 1, 2, 3].map((item) => (
+          <div className="h-3 rounded bg-stone-200/70" key={item} style={{ width: `${90 - item * 18}%` }} />
+        ))}
+      </div>
+    </div>
+  );
+}
+
 export function DashboardPanel() {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [categories, setCategories] = useState<Category[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
   const [requestKey, setRequestKey] = useState(0);
 
@@ -47,10 +74,14 @@ export function DashboardPanel() {
     const controller = new AbortController();
     let active = true;
 
-    void listProducts(controller.signal)
-      .then((loadedProducts) => {
+    void Promise.all([
+      listProducts(controller.signal),
+      listCategories(controller.signal),
+    ])
+      .then(([loadedProducts, loadedCategories]) => {
         if (!active) return;
         setProducts(loadedProducts);
+        setCategories(loadedCategories);
         setIsLoading(false);
       })
       .catch((error: unknown) => {
@@ -73,7 +104,14 @@ export function DashboardPanel() {
     setRequestKey((current) => current + 1);
   }
 
-  if (isLoading) return <DashboardSkeleton />;
+  if (isLoading) {
+    return (
+      <>
+        <DashboardSkeleton />
+        <ChartSkeleton />
+      </>
+    );
+  }
 
   if (errorMessage) {
     return (
@@ -119,5 +157,10 @@ export function DashboardPanel() {
     );
   }
 
-  return <InventorySummary products={products} />;
+  return (
+    <>
+      <InventorySummary products={products} />
+      <CategoryValueChart categories={categories} products={products} />
+    </>
+  );
 }
