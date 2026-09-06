@@ -11,7 +11,8 @@
     "start": "next start",
     "lint": "eslint",
     "test:e2e:webkit": "playwright test",
-    "screenshots": "node scripts/capture-screenshots.mjs"
+    "screenshots": "node scripts/capture-screenshots.mjs",
+    "demos": "node scripts/capture-demos.mjs"
   },
   "dependencies": {
     "next": "16.3.3",

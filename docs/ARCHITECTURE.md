@@ -225,7 +225,10 @@ bootstrap na mesma sessão não duplica nenhum item.
 checkpoints permanece manual. `npm run screenshots`
 (`frontend/scripts/capture-screenshots.mjs`) percorre as telas principais com os
 dois perfis e grava `docs/screenshots/`; roda contra uma sandbox nova, então as
-imagens sempre mostram o mesmo catálogo inicial. Há um teste E2E direcionado em Playwright/WebKit
+imagens sempre mostram o mesmo catálogo inicial. `npm run demos`
+(`capture-demos.mjs`) grava os GIFs de `docs/demos/` — Playwright registra a
+interação em vídeo e o `ffmpeg` converte, cortando a abertura da sessão pelo
+instante que cada roteiro marca. Há um teste E2E direcionado em Playwright/WebKit
 para o risco cross-domain principal: com cookies removidos, ele confirma em
 produção que bootstrap após recarga, login e movimentação preservam a sandbox
 por `X-Session-Id`. A suíte não roda na CI para evitar o download do navegador

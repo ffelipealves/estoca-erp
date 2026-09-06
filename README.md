@@ -38,10 +38,17 @@ biblioteca:
 
 ![Painel do administrador](docs/screenshots/02-painel-admin.png)
 
-O catálogo tem ordenação por coluna, filtro por categoria e recorte de itens
-abaixo do estoque mínimo:
+O catálogo ordena por qualquer coluna e filtra por categoria ou por estoque
+abaixo do mínimo, tudo no cliente — o teto é de 50 produtos por sessão e a lista
+já está em memória:
 
-![Catálogo de produtos](docs/screenshots/03-produtos-admin.png)
+![Ordenação e filtros do catálogo](docs/demos/catalogo-ordenacao-e-filtros.gif)
+
+Entrada e saída somam ou retiram do saldo; **ajuste substitui** o saldo pelo
+número informado, que é o que se usa depois de uma contagem física. A prévia
+mostra o efeito antes de confirmar:
+
+![Registrando um ajuste de estoque](docs/demos/registrar-ajuste-de-estoque.gif)
 
 O mesmo catálogo visto pelo operador. Os controles de cadastro continuam na
 tela, marcados com cadeado, e o clique explica a restrição — o backend responde
@@ -55,8 +62,10 @@ reset da demonstração:
 ![Área de administração](docs/screenshots/08-administracao.png)
 
 As doze capturas, incluindo formulários, ajuda contextual e a versão para
-celular, estão em [`docs/screenshots/`](docs/screenshots/) e são geradas por
-`npm run screenshots`.
+celular, estão em [`docs/screenshots/`](docs/screenshots/). Os GIFs — com um
+terceiro mostrando o bloqueio do operador — estão em
+[`docs/demos/`](docs/demos/). Ambos são gerados por script, contra uma sandbox
+recém-criada, então não envelhecem em silêncio junto com a interface.
 
 ## O que está pronto
 
@@ -193,9 +202,15 @@ recém-criada, então refletem sempre o mesmo catálogo inicial:
 
 ```bash
 cd frontend
-npm run screenshots                      # contra a produção
+npm run screenshots                      # imagens de docs/screenshots/
+npm run demos                            # GIFs de docs/demos/
 BASE_URL=http://localhost:3000 npm run screenshots
 ```
+
+Os GIFs usam o Playwright para gravar a interação e o `ffmpeg` para converter.
+GIF, e não vídeo, porque é o único formato que o GitHub anima inline a partir de
+um arquivo do próprio repositório: um `.mp4` commitado e referenciado com
+sintaxe de imagem não toca.
 
 ## Hospedagem e automações
 

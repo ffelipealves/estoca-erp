@@ -79,7 +79,12 @@ async function goToSection(page, label) {
 
 async function main() {
   await mkdir(OUT_DIR, { recursive: true });
-  const browser = await chromium.launch();
+  // O Chromium formata `<input type="date">` pelo idioma da aplicação, não pelo
+  // `locale` do contexto — sem isto os filtros de período saem em mm/dd/yyyy.
+  const browser = await chromium.launch({
+    args: ["--lang=pt-BR"],
+    env: { ...process.env, LANG: "pt_BR.UTF-8", LANGUAGE: "pt_BR:pt" },
+  });
   const context = await browser.newContext({ locale: "pt-BR", viewport: VIEWPORT });
   const page = await context.newPage();
 
