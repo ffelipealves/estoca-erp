@@ -173,7 +173,7 @@ export function CategoryPanel() {
       <div className="flex flex-col gap-4 border-b border-dashed border-stone-300 bg-stone-100/70 px-5 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-6">
         <div>
           <p className="font-mono text-[10px] font-semibold uppercase tracking-[0.17em] text-stone-500">
-            Etiquetas de prateleira · CAT-{String(categories.length).padStart(3, "0")}
+            Etiquetas de prateleira
           </p>
           <p className="mt-1 text-sm text-stone-600" aria-live="polite">
             {isLoading
@@ -355,7 +355,7 @@ export function CategoryPanel() {
 
       {!isLoading && !loadErrorMessage && categories.length > 0 ? (
         <ul className="grid gap-px bg-stone-200 sm:grid-cols-2 lg:grid-cols-3">
-          {categories.map((category, index) => {
+          {categories.map((category) => {
             const productCount = productCountByCategory.get(category.id) ?? 0;
 
             return (
@@ -363,9 +363,6 @@ export function CategoryPanel() {
                 <div className="flex items-start justify-between gap-4">
                   <span className="grid size-10 place-items-center rounded-lg border border-stone-300 bg-stone-100 font-display text-xl font-bold text-stone-600 transition group-hover:border-emerald-700/30 group-hover:bg-emerald-50 group-hover:text-emerald-800">
                     {category.name.charAt(0).toLocaleUpperCase("pt-BR")}
-                  </span>
-                  <span className="font-mono text-[9px] uppercase tracking-[0.16em] text-stone-400">
-                    CAT-{String(index + 1).padStart(2, "0")}
                   </span>
                 </div>
                 <p className="mt-5 font-display text-2xl font-bold leading-none text-[#17201d]">

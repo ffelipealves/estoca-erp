@@ -311,7 +311,7 @@ export function ProductList() {
       <div className="flex flex-col gap-4 border-b border-dashed border-stone-300 bg-stone-100/70 px-5 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-6">
         <div>
           <p className="font-mono text-[10px] font-semibold uppercase tracking-[0.17em] text-stone-500">
-            Romaneio atual · PRD-{String(products.length).padStart(3, "0")}
+            Romaneio atual
           </p>
           <p className="mt-1 text-sm text-stone-600" aria-live="polite">
             {isLoading
