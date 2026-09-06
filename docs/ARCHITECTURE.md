@@ -28,6 +28,14 @@ erro e vazio. Os controles de mutação permanecem visíveis para o operador —
 apagados, com cadeado e `aria-disabled` via `components/auth/AdminAction.tsx` —
 e o clique explica a restrição em vez de a ação sumir da tela; `lib/permissions.ts`
 centraliza esse texto e converte um 403 da API na mesma orientação.
+
+A tabela de produtos ordena e filtra **no cliente** (nome, categoria, preço e
+saldo; filtro por categoria e por estoque abaixo do mínimo). É deliberado: o
+teto é de 50 produtos por sessão e a lista inteira já está em memória, então uma
+ida ao servidor por clique de cabeçalho só somaria latência. Os parâmetros
+`category_id`, `search` e `low_stock` de `GET /products` continuam existindo e
+testados para consumidores da API. No mobile o cabeçalho da tabela fica oculto,
+então a ordenação ganha um `select` próprio.
 `components/admin/AdminPanel.tsx` concentra a área restrita: identidade da
 sandbox com contagem regressiva a partir de `GET /sessions/me`, matriz de
 permissões por perfil e o reset da sessão. As credenciais demo ficam em

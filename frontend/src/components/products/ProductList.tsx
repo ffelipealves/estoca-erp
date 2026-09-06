@@ -34,6 +34,93 @@ function describeError(error: unknown): string {
   return "Não foi possível carregar o catálogo. Verifique a conexão e tente novamente.";
 }
 
+type SortKey = "name" | "category" | "price" | "quantity";
+type SortDirection = "asc" | "desc";
+
+const SORT_LABELS: Record<SortKey, string> = {
+  category: "Categoria",
+  name: "Produto",
+  price: "Preço",
+  quantity: "Saldo",
+};
+
+/** Mesma ordem das colunas da tabela, para o select do mobile não divergir. */
+const SORT_ORDER: SortKey[] = ["name", "category", "price", "quantity"];
+
+/**
+ * Ordenamos no cliente de propósito: o teto é de 50 produtos por sessão e a
+ * lista inteira já está em memória, então uma ida ao servidor por clique de
+ * cabeçalho só adicionaria latência. Os filtros da API (`category_id`,
+ * `search`, `low_stock`) seguem existindo para consumidores da API.
+ */
+function compareProducts(
+  left: Product,
+  right: Product,
+  key: SortKey,
+  categoryNameOf: (product: Product) => string,
+): number {
+  switch (key) {
+    case "price":
+      return Number(left.price) - Number(right.price);
+    case "quantity":
+      return left.quantity - right.quantity;
+    case "category":
+      return categoryNameOf(left).localeCompare(categoryNameOf(right), "pt-BR");
+    default:
+      return left.name.localeCompare(right.name, "pt-BR");
+  }
+}
+
+function SortHeader({
+  activeKey,
+  direction,
+  label,
+  onToggle,
+  sortKey,
+}: {
+  activeKey: SortKey;
+  direction: SortDirection;
+  label: string;
+  onToggle: (key: SortKey) => void;
+  sortKey: SortKey;
+}) {
+  const isActive = activeKey === sortKey;
+  const ascending = isActive && direction === "asc";
+
+  return (
+    <button
+      // A lista é um <ul>, não uma <table>, então não há papel de columnheader
+      // onde `aria-sort` seria válido — o estado vai no rótulo acessível.
+      aria-label={`${label}. ${
+        isActive
+          ? `Ordenado em ordem ${ascending ? "crescente" : "decrescente"}. Ativar para inverter.`
+          : "Ativar para ordenar por esta coluna."
+      }`}
+      className={`group inline-flex items-center gap-1.5 text-left uppercase tracking-[0.16em] transition focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700 ${
+        isActive ? "text-emerald-800" : "hover:text-stone-800"
+      }`}
+      onClick={() => onToggle(sortKey)}
+      type="button"
+    >
+      {label}
+      <svg
+        aria-hidden="true"
+        className={`size-3 shrink-0 transition ${
+          isActive ? "opacity-100" : "opacity-0 group-hover:opacity-40"
+        } ${isActive && !ascending ? "rotate-180" : ""}`}
+        fill="none"
+        stroke="currentColor"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth="2.4"
+        viewBox="0 0 24 24"
+      >
+        <path d="M12 19V5M6 11l6-6 6 6" />
+      </svg>
+    </button>
+  );
+}
+
 function ProductListSkeleton() {
   return (
     <div aria-label="Carregando produtos" className="animate-pulse" role="status">
@@ -72,6 +159,10 @@ export function ProductList() {
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [productToDelete, setProductToDelete] = useState<Product | null>(null);
   const [restrictionMessage, setRestrictionMessage] = useState<string | null>(null);
+  const [categoryFilter, setCategoryFilter] = useState("");
+  const [lowStockOnly, setLowStockOnly] = useState(false);
+  const [sortDirection, setSortDirection] = useState<SortDirection>("asc");
+  const [sortKey, setSortKey] = useState<SortKey>("name");
 
   const isAdmin = user?.role === "admin";
 
@@ -115,18 +206,43 @@ export function ProductList() {
   );
   const normalizedSearch = normalizeSearch(search);
   const visibleProducts = useMemo(() => {
-    if (!normalizedSearch) return products;
+    const categoryNameOf = (product: Product) =>
+      categoriesById.get(product.category_id) ?? "";
 
-    return products.filter((product) => {
-      const categoryName = categoriesById.get(product.category_id) ?? "";
-      return normalizeSearch(`${product.name} ${product.sku} ${categoryName}`).includes(
-        normalizedSearch,
-      );
+    const filtered = products.filter((product) => {
+      if (categoryFilter && product.category_id !== categoryFilter) return false;
+      if (lowStockOnly && product.quantity > product.low_stock_threshold) return false;
+      if (!normalizedSearch) return true;
+
+      return normalizeSearch(
+        `${product.name} ${product.sku} ${categoryNameOf(product)}`,
+      ).includes(normalizedSearch);
     });
-  }, [categoriesById, normalizedSearch, products]);
+
+    // Desempata sempre pelo nome para a ordem não variar entre renders quando
+    // preço, saldo ou categoria empatam.
+    return filtered.sort((left, right) => {
+      const comparison = compareProducts(left, right, sortKey, categoryNameOf);
+      const direction = sortDirection === "asc" ? 1 : -1;
+
+      return comparison !== 0
+        ? comparison * direction
+        : left.name.localeCompare(right.name, "pt-BR");
+    });
+  }, [
+    categoriesById,
+    categoryFilter,
+    lowStockOnly,
+    normalizedSearch,
+    products,
+    sortDirection,
+    sortKey,
+  ]);
   const lowStockCount = products.filter(
     (product) => product.quantity <= product.low_stock_threshold,
   ).length;
+
+  const hasActiveFilters = Boolean(search || categoryFilter || lowStockOnly);
 
   function reloadProducts() {
     setIsLoading(true);
@@ -134,9 +250,26 @@ export function ProductList() {
     setRequestKey((current) => current + 1);
   }
 
+  function clearFilters() {
+    setCategoryFilter("");
+    setLowStockOnly(false);
+    setSearch("");
+  }
+
+  /** Primeiro clique ordena crescente; clicar de novo na mesma coluna inverte. */
+  function toggleSort(key: SortKey) {
+    if (key === sortKey) {
+      setSortDirection((current) => (current === "asc" ? "desc" : "asc"));
+      return;
+    }
+
+    setSortDirection("asc");
+    setSortKey(key);
+  }
+
   function handleProductCreated(product: Product) {
     setProducts((current) => [product, ...current]);
-    setSearch("");
+    clearFilters();
     setShowCreateForm(false);
     setSuccessMessage(`${product.name} foi cadastrado no estoque.`);
   }
@@ -323,21 +456,93 @@ export function ProductList() {
 
       {!isLoading && !errorMessage ? (
         <>
-          <div className="border-b border-stone-200 px-5 py-5 sm:px-6">
-            <label className="relative block max-w-lg">
-              <span className="sr-only">Buscar no catálogo</span>
-              <svg aria-hidden="true" className="pointer-events-none absolute left-3.5 top-1/2 size-[18px] -translate-y-1/2 text-stone-400" fill="none" stroke="currentColor" strokeLinecap="round" strokeWidth="1.8" viewBox="0 0 24 24">
-                <circle cx="10.5" cy="10.5" r="6.5" />
-                <path d="m16 16 4 4" />
-              </svg>
-              <input
-                className="h-11 w-full rounded-lg border border-stone-300 bg-white pl-11 pr-4 text-sm text-stone-900 outline-none transition placeholder:text-stone-400 focus:border-emerald-700 focus:ring-2 focus:ring-emerald-700/10"
-                onChange={(event) => setSearch(event.target.value)}
-                placeholder="Buscar por produto, SKU ou categoria"
-                type="search"
-                value={search}
-              />
-            </label>
+          <div className="space-y-4 border-b border-stone-200 px-5 py-5 sm:px-6">
+            <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
+              <label className="relative block w-full lg:max-w-md">
+                <span className="sr-only">Buscar no catálogo</span>
+                <svg aria-hidden="true" className="pointer-events-none absolute left-3.5 top-1/2 size-[18px] -translate-y-1/2 text-stone-400" fill="none" stroke="currentColor" strokeLinecap="round" strokeWidth="1.8" viewBox="0 0 24 24">
+                  <circle cx="10.5" cy="10.5" r="6.5" />
+                  <path d="m16 16 4 4" />
+                </svg>
+                <input
+                  className="h-11 w-full rounded-lg border border-stone-300 bg-white pl-11 pr-4 text-sm text-stone-900 outline-none transition placeholder:text-stone-400 focus:border-emerald-700 focus:ring-2 focus:ring-emerald-700/10"
+                  onChange={(event) => setSearch(event.target.value)}
+                  placeholder="Buscar por produto, SKU ou categoria"
+                  type="search"
+                  value={search}
+                />
+              </label>
+
+              <label className="w-full lg:w-56">
+                <span className="sr-only">Filtrar por categoria</span>
+                <select
+                  className="h-11 w-full rounded-lg border border-stone-300 bg-white px-3 text-sm text-stone-800 outline-none transition focus:border-emerald-700 focus:ring-2 focus:ring-emerald-700/10"
+                  onChange={(event) => setCategoryFilter(event.target.value)}
+                  value={categoryFilter}
+                >
+                  <option value="">Todas as categorias</option>
+                  {categories.map((category) => (
+                    <option key={category.id} value={category.id}>
+                      {category.name}
+                    </option>
+                  ))}
+                </select>
+              </label>
+
+              <button
+                aria-pressed={lowStockOnly}
+                className={`inline-flex h-11 shrink-0 items-center justify-center gap-2 rounded-lg border px-4 font-mono text-[10px] font-semibold uppercase tracking-wider transition focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700 ${
+                  lowStockOnly
+                    ? "border-amber-700/30 bg-amber-100 text-amber-900"
+                    : "border-stone-300 bg-white text-stone-600 hover:border-stone-400 hover:text-stone-900"
+                }`}
+                onClick={() => setLowStockOnly((current) => !current)}
+                type="button"
+              >
+                <span className={`size-2 rounded-full ${lowStockOnly ? "bg-amber-600" : "bg-stone-300"}`} />
+                Abaixo do mínimo
+              </button>
+
+              {/* No mobile o cabeçalho da tabela fica oculto, então a ordenação
+                  precisa de um controle próprio. */}
+              <label className="w-full md:hidden">
+                <span className="sr-only">Ordenar por</span>
+                <select
+                  className="h-11 w-full rounded-lg border border-stone-300 bg-white px-3 text-sm text-stone-800 outline-none transition focus:border-emerald-700 focus:ring-2 focus:ring-emerald-700/10"
+                  onChange={(event) => {
+                    const [key, direction] = event.target.value.split(":");
+                    setSortKey(key as SortKey);
+                    setSortDirection(direction as SortDirection);
+                  }}
+                  value={`${sortKey}:${sortDirection}`}
+                >
+                  {SORT_ORDER.flatMap((key) => [
+                    <option key={`${key}:asc`} value={`${key}:asc`}>
+                      {SORT_LABELS[key]} — crescente
+                    </option>,
+                    <option key={`${key}:desc`} value={`${key}:desc`}>
+                      {SORT_LABELS[key]} — decrescente
+                    </option>,
+                  ])}
+                </select>
+              </label>
+            </div>
+
+            {hasActiveFilters ? (
+              <div className="flex flex-wrap items-center gap-3">
+                <p className="text-xs text-stone-600">
+                  Mostrando {visibleProducts.length} de {products.length}{" "}
+                  {products.length === 1 ? "item" : "itens"}.
+                </p>
+                <button
+                  className="text-xs font-semibold text-emerald-800 underline decoration-emerald-800/30 underline-offset-4 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700"
+                  onClick={clearFilters}
+                  type="button"
+                >
+                  Limpar filtros
+                </button>
+              </div>
+            ) : null}
           </div>
 
           {products.length === 0 ? (
@@ -354,9 +559,13 @@ export function ProductList() {
             <div className="grid min-h-56 place-items-center px-6 py-10 text-center">
               <div>
                 <p className="font-display text-2xl font-bold text-[#17201d]">Nenhum item encontrado</p>
-                <p className="mt-2 text-sm text-stone-600">Revise a busca ou use outro nome, SKU ou categoria.</p>
-                <button className="mt-4 text-sm font-semibold text-emerald-800 underline decoration-emerald-800/30 underline-offset-4 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700" onClick={() => setSearch("")} type="button">
-                  Limpar busca
+                <p className="mt-2 text-sm text-stone-600">
+                  {lowStockOnly
+                    ? "Nenhum item desta seleção está abaixo do estoque mínimo."
+                    : "Revise a busca ou escolha outra categoria."}
+                </p>
+                <button className="mt-4 text-sm font-semibold text-emerald-800 underline decoration-emerald-800/30 underline-offset-4 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700" onClick={clearFilters} type="button">
+                  Limpar filtros
                 </button>
               </div>
             </div>
@@ -365,10 +574,34 @@ export function ProductList() {
           {visibleProducts.length > 0 ? (
             <div>
               <div className="hidden grid-cols-[minmax(220px,2fr)_1fr_0.8fr_0.8fr_132px] gap-5 border-b border-stone-200 bg-stone-50 px-6 py-3 font-mono text-[9px] font-semibold uppercase tracking-[0.16em] text-stone-500 md:grid">
-                <span>Produto / SKU</span>
-                <span>Categoria</span>
-                <span>Preço</span>
-                <span>Saldo</span>
+                <SortHeader
+                  activeKey={sortKey}
+                  direction={sortDirection}
+                  label="Produto / SKU"
+                  onToggle={toggleSort}
+                  sortKey="name"
+                />
+                <SortHeader
+                  activeKey={sortKey}
+                  direction={sortDirection}
+                  label="Categoria"
+                  onToggle={toggleSort}
+                  sortKey="category"
+                />
+                <SortHeader
+                  activeKey={sortKey}
+                  direction={sortDirection}
+                  label="Preço"
+                  onToggle={toggleSort}
+                  sortKey="price"
+                />
+                <SortHeader
+                  activeKey={sortKey}
+                  direction={sortDirection}
+                  label="Saldo"
+                  onToggle={toggleSort}
+                  sortKey="quantity"
+                />
                 <span>Ações</span>
               </div>
               <ul className="divide-y divide-stone-200">
