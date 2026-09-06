@@ -4,17 +4,19 @@ import { useEffect, useState, type ReactNode } from "react";
 
 import { AdminPanel } from "@/components/admin/AdminPanel";
 import { CategoryPanel } from "@/components/categories/CategoryPanel";
+import { DashboardPanel } from "@/components/dashboard/DashboardPanel";
 import { MovementList } from "@/components/movements/MovementList";
 import { ProductList } from "@/components/products/ProductList";
 import { useAuth } from "@/context/AuthProvider";
 import { useSession } from "@/context/SessionProvider";
 
-type AppSection = "products" | "categories" | "movements" | "admin";
+type AppSection = "dashboard" | "products" | "categories" | "movements" | "admin";
 type IconName =
   | "archive"
   | "boxes"
   | "chevron"
   | "close"
+  | "dashboard"
   | "folder"
   | "logout"
   | "menu"
@@ -41,8 +43,22 @@ const NAV_GROUPS: NavGroup[] = [
   {
     items: [
       {
+        description: "Resumo da sessão",
+        eyebrow: "Fechamento · sessão atual",
+        icon: "dashboard",
+        id: "dashboard",
+        intro:
+          "O retrato do estoque desta sandbox: valor armazenado, unidades em mãos e o que precisa de reposição.",
+        label: "Painel",
+      },
+    ],
+    title: "Visão geral",
+  },
+  {
+    items: [
+      {
         description: "Itens, preços e saldo",
-        eyebrow: "Dia 14 · Visão do estoque",
+        eyebrow: "Catálogo · itens da sessão",
         icon: "boxes",
         id: "products",
         intro: "Consulte saldos e mantenha os itens desta demonstração organizados.",
@@ -113,6 +129,12 @@ function Icon({ name, className = "size-5" }: { name: IconName; className?: stri
     ),
     chevron: <path d="m9 18 6-6-6-6" />,
     close: <path d="M6 6l12 12M18 6 6 18" />,
+    dashboard: (
+      <>
+        <path d="M4 19.5h16" />
+        <path d="M6.5 19.5v-6M11 19.5v-11M15.5 19.5v-8M20 19.5v-14" />
+      </>
+    ),
     folder: (
       <path d="M3.5 6.5h6l2 2h9v10h-17v-12Z" />
     ),
@@ -169,7 +191,7 @@ function formatExpiration(expiresAt: string | null): string {
 export function AppShell() {
   const { logout, user } = useAuth();
   const { expiresAt } = useSession();
-  const [selectedSection, setSelectedSection] = useState<AppSection>("products");
+  const [selectedSection, setSelectedSection] = useState<AppSection>("dashboard");
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   useEffect(() => {
@@ -187,7 +209,7 @@ export function AppShell() {
 
   const isAdmin = user.role === "admin";
   const activeSection: AppSection =
-    selectedSection === "admin" && !isAdmin ? "products" : selectedSection;
+    selectedSection === "admin" && !isAdmin ? "dashboard" : selectedSection;
   const active = SECTIONS.find((section) => section.id === activeSection)!;
   const roleLabel = isAdmin ? "Administrador" : "Operador";
 
@@ -367,7 +389,9 @@ export function AppShell() {
               ) : null}
             </div>
 
-            {activeSection === "products" ? (
+            {activeSection === "dashboard" ? (
+              <DashboardPanel />
+            ) : activeSection === "products" ? (
               <ProductList />
             ) : activeSection === "categories" ? (
               <CategoryPanel />

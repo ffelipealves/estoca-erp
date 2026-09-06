@@ -20,6 +20,10 @@ Next.js App Router. `app/` contém página, layout e estilos globais;
 `context/AuthProvider.tsx` restaura o login durante a aba. `lib/api.ts` centraliza
 cookie, fallback `X-Session-Id`, Bearer token e contratos HTTP.
 
+A seção inicial é o Painel (`components/dashboard/DashboardPanel.tsx`), que
+concentra o fechamento da sessão; as telas de catálogo e operação ficam com os
+próprios dados, sem resumo embutido.
+
 O shell autenticado está em `components/layout/AppShell.tsx`, que declara as
 seções em `NAV_GROUPS` — a navegação, o cabeçalho e o conteúdo derivam dessa
 mesma estrutura, e um grupo marcado `adminOnly` não é renderizado para operador.
@@ -140,7 +144,9 @@ Prefixo `/api/v1`; limpeza interna em `/internal` (`include_in_schema=False`).
 **Dashboard**: o fechamento do estoque é calculado no frontend a partir de
 `GET /products`, sem endpoint agregado paralelo. Exibe valor armazenado,
 quantidade total de unidades, categorias ativas e fila de reposição por
-urgência.
+urgência. A regra vale para **esses números**: dados de outra natureza (uma
+série histórica sobre `stock_movements`, por exemplo) não são fonte paralela e
+podem ter endpoint próprio.
 
 **Interno** (sem JWT, header `X-Cron-Secret` via `secrets.compare_digest`): `POST /internal/cleanup/expired`, `POST /internal/cleanup/wipe-all`. Mais `GET /healthz` público.
 

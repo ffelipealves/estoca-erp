@@ -4,7 +4,6 @@ import { useEffect, useMemo, useState } from "react";
 
 import { AdminAction } from "@/components/auth/AdminAction";
 import { ProductForm } from "@/components/products/ProductForm";
-import { InventorySummary } from "@/components/products/InventorySummary";
 import { useAuth } from "@/context/AuthProvider";
 import {
   ApiError,
@@ -308,10 +307,7 @@ export function ProductList() {
   }
 
   return (
-    <>
-      {!isLoading && !errorMessage ? <InventorySummary products={products} /> : null}
-
-      <section className="mt-6 overflow-hidden rounded-2xl border border-stone-300 bg-[#fffdf8] shadow-[0_16px_45px_rgba(46,52,48,0.06)]">
+    <section className="mt-8 overflow-hidden rounded-2xl border border-stone-300 bg-[#fffdf8] shadow-[0_16px_45px_rgba(46,52,48,0.06)]">
       <div className="flex flex-col gap-4 border-b border-dashed border-stone-300 bg-stone-100/70 px-5 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-6">
         <div>
           <p className="font-mono text-[10px] font-semibold uppercase tracking-[0.17em] text-stone-500">
@@ -680,7 +676,6 @@ export function ProductList() {
           ) : null}
         </>
       ) : null}
-      </section>
-    </>
+    </section>
   );
 }
