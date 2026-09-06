@@ -36,6 +36,12 @@ ida ao servidor por clique de cabeçalho só somaria latência. Os parâmetros
 `category_id`, `search` e `low_stock` de `GET /products` continuam existindo e
 testados para consumidores da API. No mobile o cabeçalho da tabela fica oculto,
 então a ordenação ganha um `select` próprio.
+
+A lista de movimentações continua paginada **no servidor**, e por isso os
+filtros de produto, tipo e período também são do servidor. O `input[type=date]`
+devolve um dia civil sem fuso; a conversão para instante (início e fim do dia
+local) acontece no navegador, o único lugar que conhece o fuso do usuário.
+Qualquer mudança de filtro volta para a primeira página.
 `components/admin/AdminPanel.tsx` concentra a área restrita: identidade da
 sandbox com contagem regressiva a partir de `GET /sessions/me`, matriz de
 permissões por perfil e o reset da sessão. As credenciais demo ficam em
@@ -129,7 +135,7 @@ Prefixo `/api/v1`; limpeza interna em `/internal` (`include_in_schema=False`).
 **Categorias / Produtos / Movimentações** (JWT obrigatório)
 - Categorias: `GET/POST /categories`, `GET/PUT/DELETE /categories/{id}` — mutação **admin only**; delete bloqueia (422) se houver produtos vinculados.
 - Produtos: `GET/POST /products` (filtros `category_id`, `search`, `low_stock`; teto de 50/sessão; sku único por sessão), `GET/PUT/DELETE /products/{id}` — mutação **admin only**.
-- Movimentações: `GET /stock-movements` (paginado), `POST /stock-movements` — **admin e operador**; teto de 500/sessão.
+- Movimentações: `GET /stock-movements` (paginado; filtros `product_id`, `type` e o período `date_from`/`date_to`, instantes ISO 8601 inclusivos comparados contra `created_at` em UTC — intervalo invertido devolve 422), `POST /stock-movements` — **admin e operador**; teto de 500/sessão.
 
 **Dashboard**: o fechamento do estoque é calculado no frontend a partir de
 `GET /products`, sem endpoint agregado paralelo. Exibe valor armazenado,
@@ -198,5 +204,5 @@ produção que bootstrap após recarga, login e movimentação preservam a sandb
 por `X-Session-Id`. A suíte não roda na CI para evitar o download do navegador
 em todos os pushes.
 
-A suíte atual do backend possui 30 testes. O seed populado, o reset e os
+A suíte atual do backend possui 32 testes. O seed populado, o reset e os
 limites de produtos e movimentações são cobertos contra PostgreSQL real.

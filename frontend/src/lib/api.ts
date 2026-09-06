@@ -311,17 +311,28 @@ export function deleteProduct(productId: string): Promise<void> {
   });
 }
 
+export interface StockMovementFilters {
+  /** Instante ISO 8601 inclusivo — a API compara contra `created_at` em UTC. */
+  dateFrom?: string;
+  dateTo?: string;
+  productId?: string;
+  type?: StockMovementType;
+}
+
 export function listStockMovements(
   page: number,
   pageSize: number,
-  productId?: string,
+  filters: StockMovementFilters = {},
   signal?: AbortSignal,
 ): Promise<StockMovementPage> {
   const query = new URLSearchParams({
     page: String(page),
     page_size: String(pageSize),
   });
-  if (productId) query.set("product_id", productId);
+  if (filters.productId) query.set("product_id", filters.productId);
+  if (filters.type) query.set("type", filters.type);
+  if (filters.dateFrom) query.set("date_from", filters.dateFrom);
+  if (filters.dateTo) query.set("date_to", filters.dateTo);
 
   return apiRequest<StockMovementPage>(
     `/api/v1/stock-movements?${query.toString()}`,

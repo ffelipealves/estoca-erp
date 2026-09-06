@@ -15,6 +15,30 @@ import {
 
 const PAGE_SIZE = 20;
 
+/**
+ * O input `date` devolve um dia civil sem fuso, mas a API compara contra
+ * `created_at` (timestamptz). A conversão acontece aqui, no navegador, que é o
+ * único lugar que conhece o fuso do usuário — enviar o dia cru faria a janela
+ * escorregar algumas horas.
+ */
+function startOfLocalDay(date: string): string | undefined {
+  if (!date) return undefined;
+  const [year, month, day] = date.split("-").map(Number);
+  return new Date(year, month - 1, day, 0, 0, 0, 0).toISOString();
+}
+
+function endOfLocalDay(date: string): string | undefined {
+  if (!date) return undefined;
+  const [year, month, day] = date.split("-").map(Number);
+  return new Date(year, month - 1, day, 23, 59, 59, 999).toISOString();
+}
+
+const TYPE_OPTIONS: Array<{ label: string; value: StockMovementType }> = [
+  { label: "Entrada", value: "entrada" },
+  { label: "Saída", value: "saida" },
+  { label: "Ajuste", value: "ajuste" },
+];
+
 const movementLabels: Record<StockMovementType, string> = {
   ajuste: "Ajuste",
   entrada: "Entrada",
@@ -56,10 +80,14 @@ function movementTone(type: StockMovementType): string {
 
 export function MovementList() {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [isFilterError, setIsFilterError] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [movementPage, setMovementPage] = useState<StockMovementPage | null>(null);
   const [page, setPage] = useState(1);
   const [productId, setProductId] = useState("");
+  const [movementType, setMovementType] = useState<StockMovementType | "">("");
+  const [dateFrom, setDateFrom] = useState("");
+  const [dateTo, setDateTo] = useState("");
   const [products, setProducts] = useState<Product[]>([]);
   const [requestKey, setRequestKey] = useState(0);
   const [showCreateForm, setShowCreateForm] = useState(false);
@@ -70,7 +98,17 @@ export function MovementList() {
     let active = true;
 
     void Promise.all([
-      listStockMovements(page, PAGE_SIZE, productId || undefined, controller.signal),
+      listStockMovements(
+        page,
+        PAGE_SIZE,
+        {
+          dateFrom: startOfLocalDay(dateFrom),
+          dateTo: endOfLocalDay(dateTo),
+          productId: productId || undefined,
+          type: movementType || undefined,
+        },
+        controller.signal,
+      ),
       listProducts(controller.signal),
     ])
       .then(([loadedMovements, loadedProducts]) => {
@@ -84,6 +122,9 @@ export function MovementList() {
           return;
         }
         setErrorMessage(describeError(error));
+        // Um 422 aqui é intervalo de datas inválido, não indisponibilidade:
+        // "tentar novamente" não resolveria, corrigir o filtro sim.
+        setIsFilterError(error instanceof ApiError && error.status === 422);
         setIsLoading(false);
       });
 
@@ -91,22 +132,42 @@ export function MovementList() {
       active = false;
       controller.abort();
     };
-  }, [page, productId, requestKey]);
+  }, [dateFrom, dateTo, movementType, page, productId, requestKey]);
 
   const productsById = useMemo(
     () => new Map(products.map((product) => [product.id, product])),
     [products],
   );
 
+  const hasActiveFilters = Boolean(productId || movementType || dateFrom || dateTo);
+
   function reloadMovements() {
     setErrorMessage(null);
+    setIsFilterError(false);
     setIsLoading(true);
     setRequestKey((current) => current + 1);
   }
 
+  /** Toda mudança de filtro volta para a primeira página: a paginação é do
+   *  servidor, e manter a página atual mostraria um intervalo inexistente. */
+  function applyFilterChange(apply: () => void) {
+    setErrorMessage(null);
+    setIsFilterError(false);
+    setIsLoading(true);
+    setPage(1);
+    apply();
+  }
+
+  function clearFilters() {
+    setDateFrom("");
+    setDateTo("");
+    setMovementType("");
+    setProductId("");
+  }
+
   function handleMovementCreated(movement: StockMovement) {
     setPage(1);
-    setProductId("");
+    clearFilters();
     setShowCreateForm(false);
     setSuccessMessage(
       `${movementCreatedLabels[movement.type]}. Saldo final: ${movement.resulting_quantity}.`,
@@ -169,29 +230,95 @@ export function MovementList() {
         </div>
       ) : null}
 
-      <div className="border-b border-stone-200 px-5 py-5 sm:px-6">
-        <label className="block max-w-sm">
-          <span className="font-mono text-[10px] font-semibold uppercase tracking-[0.14em] text-stone-500">
-            Filtrar por produto
-          </span>
-          <select
-            className="mt-2 h-11 w-full rounded-lg border border-stone-300 bg-white px-3 text-sm text-stone-800 outline-none transition focus:border-emerald-700 focus:ring-2 focus:ring-emerald-700/10"
-            onChange={(event) => {
-              setPage(1);
-              setProductId(event.target.value);
-              setIsLoading(true);
-              setErrorMessage(null);
-            }}
-            value={productId}
-          >
-            <option value="">Todos os produtos</option>
-            {products.map((product) => (
-              <option key={product.id} value={product.id}>
-                {product.name} · {product.sku}
-              </option>
-            ))}
-          </select>
-        </label>
+      <div className="space-y-4 border-b border-stone-200 px-5 py-5 sm:px-6">
+        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+          <label className="block">
+            <span className="font-mono text-[10px] font-semibold uppercase tracking-[0.14em] text-stone-500">
+              Produto
+            </span>
+            <select
+              className="mt-2 h-11 w-full rounded-lg border border-stone-300 bg-white px-3 text-sm text-stone-800 outline-none transition focus:border-emerald-700 focus:ring-2 focus:ring-emerald-700/10"
+              onChange={(event) =>
+                applyFilterChange(() => setProductId(event.target.value))
+              }
+              value={productId}
+            >
+              <option value="">Todos os produtos</option>
+              {products.map((product) => (
+                <option key={product.id} value={product.id}>
+                  {product.name} · {product.sku}
+                </option>
+              ))}
+            </select>
+          </label>
+
+          <label className="block">
+            <span className="font-mono text-[10px] font-semibold uppercase tracking-[0.14em] text-stone-500">
+              Tipo de operação
+            </span>
+            <select
+              className="mt-2 h-11 w-full rounded-lg border border-stone-300 bg-white px-3 text-sm text-stone-800 outline-none transition focus:border-emerald-700 focus:ring-2 focus:ring-emerald-700/10"
+              onChange={(event) =>
+                applyFilterChange(() =>
+                  setMovementType(event.target.value as StockMovementType | ""),
+                )
+              }
+              value={movementType}
+            >
+              <option value="">Todas as operações</option>
+              {TYPE_OPTIONS.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+          </label>
+
+          <label className="block">
+            <span className="font-mono text-[10px] font-semibold uppercase tracking-[0.14em] text-stone-500">
+              De
+            </span>
+            <input
+              className="mt-2 h-11 w-full rounded-lg border border-stone-300 bg-white px-3 text-sm text-stone-800 outline-none transition focus:border-emerald-700 focus:ring-2 focus:ring-emerald-700/10"
+              max={dateTo || undefined}
+              onChange={(event) =>
+                applyFilterChange(() => setDateFrom(event.target.value))
+              }
+              type="date"
+              value={dateFrom}
+            />
+          </label>
+
+          <label className="block">
+            <span className="font-mono text-[10px] font-semibold uppercase tracking-[0.14em] text-stone-500">
+              Até
+            </span>
+            <input
+              className="mt-2 h-11 w-full rounded-lg border border-stone-300 bg-white px-3 text-sm text-stone-800 outline-none transition focus:border-emerald-700 focus:ring-2 focus:ring-emerald-700/10"
+              min={dateFrom || undefined}
+              onChange={(event) =>
+                applyFilterChange(() => setDateTo(event.target.value))
+              }
+              type="date"
+              value={dateTo}
+            />
+          </label>
+        </div>
+
+        {hasActiveFilters ? (
+          <div className="flex flex-wrap items-center gap-3">
+            <p className="text-xs text-stone-600">
+              {total} {total === 1 ? "registro" : "registros"} com os filtros aplicados.
+            </p>
+            <button
+              className="text-xs font-semibold text-emerald-800 underline decoration-emerald-800/30 underline-offset-4 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700"
+              onClick={() => applyFilterChange(clearFilters)}
+              type="button"
+            >
+              Limpar filtros
+            </button>
+          </div>
+        ) : null}
       </div>
 
       {isLoading ? (
@@ -213,14 +340,18 @@ export function MovementList() {
       {!isLoading && errorMessage ? (
         <div className="grid min-h-64 place-items-center px-6 py-12 text-center" role="alert">
           <div className="max-w-md">
-            <h2 className="font-display text-2xl font-bold text-[#17201d]">Histórico indisponível</h2>
+            <h2 className="font-display text-2xl font-bold text-[#17201d]">
+              {isFilterError ? "Filtro inválido" : "Histórico indisponível"}
+            </h2>
             <p className="mt-2 text-sm leading-6 text-stone-600">{errorMessage}</p>
             <button
               className="mt-5 rounded-lg bg-[#17201d] px-4 py-2.5 text-sm font-bold text-white focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-emerald-700"
-              onClick={reloadMovements}
+              onClick={() =>
+                isFilterError ? applyFilterChange(clearFilters) : reloadMovements()
+              }
               type="button"
             >
-              Tentar novamente
+              {isFilterError ? "Limpar filtros" : "Tentar novamente"}
             </button>
           </div>
         </div>
@@ -230,14 +361,27 @@ export function MovementList() {
         <div className="grid min-h-72 place-items-center px-6 py-12 text-center">
           <div className="max-w-sm">
             <p className="font-mono text-[10px] font-semibold uppercase tracking-[0.17em] text-emerald-800">
-              Livro sem lançamentos
+              {hasActiveFilters ? "Nenhum resultado" : "Livro sem lançamentos"}
             </p>
             <h2 className="mt-3 font-display text-3xl font-bold text-[#17201d]">
-              Nenhuma movimentação registrada
+              {hasActiveFilters
+                ? "Nada neste recorte"
+                : "Nenhuma movimentação registrada"}
             </h2>
             <p className="mt-3 text-sm leading-6 text-stone-600">
-              Entradas, saídas e ajustes desta sessão aparecerão aqui em ordem cronológica reversa.
+              {hasActiveFilters
+                ? "Nenhuma movimentação combina com o produto, a operação e o período escolhidos."
+                : "Entradas, saídas e ajustes desta sessão aparecerão aqui em ordem cronológica reversa."}
             </p>
+            {hasActiveFilters ? (
+              <button
+                className="mt-4 text-sm font-semibold text-emerald-800 underline decoration-emerald-800/30 underline-offset-4 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700"
+                onClick={() => applyFilterChange(clearFilters)}
+                type="button"
+              >
+                Limpar filtros
+              </button>
+            ) : null}
           </div>
         </div>
       ) : null}

@@ -1,9 +1,11 @@
 from collections.abc import Sequence
+from datetime import datetime
 from uuid import UUID
 
 from sqlalchemy import delete, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.models.enums import StockMovementType
 from app.models.stock_movement import StockMovement
 
 
@@ -41,10 +43,19 @@ class StockMovementRepository:
         offset: int,
         limit: int,
         product_id: UUID | None = None,
+        movement_type: StockMovementType | None = None,
+        created_from: datetime | None = None,
+        created_to: datetime | None = None,
     ) -> tuple[list[StockMovement], int]:
         filters = [StockMovement.session_id == session_id]
         if product_id is not None:
             filters.append(StockMovement.product_id == product_id)
+        if movement_type is not None:
+            filters.append(StockMovement.type == movement_type)
+        if created_from is not None:
+            filters.append(StockMovement.created_at >= created_from)
+        if created_to is not None:
+            filters.append(StockMovement.created_at <= created_to)
 
         total = await self.db.scalar(
             select(func.count()).select_from(StockMovement).where(*filters)

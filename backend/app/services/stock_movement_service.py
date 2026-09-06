@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from datetime import UTC, datetime
 from math import ceil
 from uuid import UUID
 
@@ -40,12 +41,27 @@ class StockMovementService:
         page: int,
         page_size: int,
         product_id: UUID | None = None,
+        movement_type: StockMovementType | None = None,
+        created_from: datetime | None = None,
+        created_to: datetime | None = None,
     ) -> StockMovementPageResult:
+        created_from = self._as_utc(created_from)
+        created_to = self._as_utc(created_to)
+        if (
+            created_from is not None
+            and created_to is not None
+            and created_from > created_to
+        ):
+            raise BusinessRuleError("A data inicial não pode ser maior que a final")
+
         items, total = await self.movements.list_paginated(
             session_id,
             offset=(page - 1) * page_size,
             limit=page_size,
             product_id=product_id,
+            movement_type=movement_type,
+            created_from=created_from,
+            created_to=created_to,
         )
         return StockMovementPageResult(
             items=items,
@@ -53,6 +69,16 @@ class StockMovementService:
             page_size=page_size,
             total=total,
         )
+
+    @staticmethod
+    def _as_utc(moment: datetime | None) -> datetime | None:
+        """`created_at` é timestamptz; um instante ingênuo do cliente é lido
+        como UTC para a comparação não depender do fuso do servidor."""
+        if moment is None:
+            return None
+        if moment.tzinfo is None:
+            return moment.replace(tzinfo=UTC)
+        return moment
 
     async def ensure_capacity(self, session_id: UUID) -> None:
         session = await self.sessions.get_by_id_for_update(session_id)
