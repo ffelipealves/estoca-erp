@@ -224,11 +224,16 @@ bootstrap na mesma sessão não duplica nenhum item.
 **Frontend**: `npm run build` no CI cobre erros de TypeScript e a validação dos
 checkpoints permanece manual. `npm run screenshots`
 (`frontend/scripts/capture-screenshots.mjs`) percorre as telas principais com os
-dois perfis e grava `docs/screenshots/`; roda contra uma sandbox nova, então as
-imagens sempre mostram o mesmo catálogo inicial. `npm run demos`
-(`capture-demos.mjs`) grava os GIFs de `docs/demos/` — Playwright registra a
+dois perfis e grava as 16 imagens de `docs/screenshots/` (com os modais de
+produto, categoria e movimentação e a edição no celular); roda contra uma
+sandbox nova, então as imagens sempre mostram o mesmo catálogo inicial, e apaga
+as imagens numeradas anteriores antes de gravar. `npm run demos`
+(`capture-demos.mjs`) grava os 6 GIFs de `docs/demos/` — Playwright registra a
 interação em vídeo e o `ffmpeg` converte, cortando a abertura da sessão pelo
-instante que cada roteiro marca. Há um teste E2E direcionado em Playwright/WebKit
+instante que cada roteiro marca; `npm run demos -- <nome>` grava só os GIFs
+indicados. Como o modal fica no fim do DOM, os seletores dos roteiros dentro
+dele precisam ser escopados a `dialog[open]`: um `label` ou `input` solto acha
+primeiro o filtro que está por trás. Há um teste E2E direcionado em Playwright/WebKit
 para o risco cross-domain principal: com cookies removidos, ele confirma em
 produção que bootstrap após recarga, login e movimentação preservam a sandbox
 por `X-Session-Id`. A suíte não roda na CI para evitar o download do navegador

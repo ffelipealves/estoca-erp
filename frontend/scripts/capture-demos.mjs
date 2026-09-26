@@ -3,6 +3,7 @@
  *
  *   npm run demos
  *   BASE_URL=http://localhost:3000 npm run demos
+ *   npm run demos -- produto-cadastro-em-modal   # só os GIFs indicados
  *
  * O Playwright grava a interação em vídeo e o ffmpeg converte para GIF, que é o
  * único formato que o GitHub anima inline a partir de um arquivo do próprio
@@ -160,6 +161,91 @@ const DEMOS = [
     },
   },
   {
+    email: "admin@estoca.demo",
+    name: "produto-cadastro-em-modal",
+    async script(page, markStart) {
+      await goToSection(page, "Produtos");
+      markStart();
+      await page.waitForTimeout(900);
+      await page.getByRole("button", { name: "+ Novo produto" }).click();
+      await page.waitForTimeout(1000);
+
+      const dialog = page.locator("dialog[open]");
+      await dialog.getByPlaceholder("Ex.: Café em grãos").pressSequentially("Café em grãos 500g", { delay: 55 });
+      await dialog.getByPlaceholder("Ex.: CAFE-001").pressSequentially("CAFE-500", { delay: 55 });
+      await dialog.locator('input[type="number"]').first().pressSequentially("32.90", { delay: 70 });
+      await page.waitForTimeout(1100);
+
+      await dialog.getByRole("button", { name: "Cadastrar produto" }).click();
+      await page
+        .locator('[role="status"]', { hasText: /foi cadastrado/i })
+        .first()
+        .waitFor({ timeout: 90_000 });
+      await page.waitForTimeout(1800);
+    },
+  },
+  {
+    email: "admin@estoca.demo",
+    name: "produto-edicao-e-rascunho",
+    async script(page, markStart) {
+      await goToSection(page, "Produtos");
+      markStart();
+      await page.waitForTimeout(900);
+      const editFirst = () =>
+        page.locator("ul.divide-y > li").first().getByRole("button", { name: "Editar" }).click();
+      const dialog = page.locator("dialog[open]");
+      const nameField = dialog.getByPlaceholder("Ex.: Café em grãos");
+
+      await editFirst();
+      await page.waitForTimeout(1000);
+
+      // Clicar fora fecha o modal e descarta o que não foi salvo.
+      await nameField.fill("");
+      await nameField.pressSequentially("Rascunho que não será salvo", { delay: 45 });
+      await page.waitForTimeout(900);
+      await page.mouse.click(8, 8);
+      await page.waitForTimeout(1300);
+
+      await editFirst();
+      await page.waitForTimeout(1500);
+
+      await dialog.locator('input[type="number"]').first().fill("");
+      await dialog.locator('input[type="number"]').first().pressSequentially("6.90", { delay: 90 });
+      await page.waitForTimeout(900);
+      await dialog.getByRole("button", { name: "Salvar alterações" }).click();
+      await page
+        .locator('[role="status"]', { hasText: /foi atualizado/i })
+        .first()
+        .waitFor({ timeout: 90_000 });
+      await page.waitForTimeout(1800);
+    },
+  },
+  {
+    email: "admin@estoca.demo",
+    name: "produto-exclusao-com-confirmacao",
+    async script(page, markStart) {
+      await goToSection(page, "Produtos");
+      markStart();
+      await page.waitForTimeout(900);
+      const deleteFirst = () =>
+        page.locator("ul.divide-y > li").first().getByRole("button", { name: "Excluir" }).click();
+
+      await deleteFirst();
+      await page.waitForTimeout(1800);
+      await page.getByRole("button", { name: "Cancelar" }).click();
+      await page.waitForTimeout(1200);
+
+      await deleteFirst();
+      await page.waitForTimeout(1400);
+      await page.getByRole("button", { name: "Excluir produto" }).click();
+      await page
+        .locator('[role="status"]', { hasText: /foi excluído/i })
+        .first()
+        .waitFor({ timeout: 90_000 });
+      await page.waitForTimeout(1800);
+    },
+  },
+  {
     email: "operador@estoca.demo",
     name: "operador-sem-permissao",
     async script(page, markStart) {
@@ -189,12 +275,19 @@ async function main() {
   });
   console.log(`Gravando de ${BASE_URL}`);
 
-  for (const demo of DEMOS) {
+  const only = process.argv.slice(2);
+  const selected = only.length ? DEMOS.filter((demo) => only.includes(demo.name)) : DEMOS;
+  if (only.length && selected.length !== only.length) {
+    const known = DEMOS.map((demo) => demo.name).join(", ");
+    throw new Error(`GIF desconhecido em: ${only.join(", ")}. Disponíveis: ${known}`);
+  }
+
+  for (const demo of selected) {
     await record(browser, demo);
   }
 
   await browser.close();
-  console.log(`\n${DEMOS.length} GIFs em docs/demos/`);
+  console.log(`\n${selected.length} GIFs em docs/demos/`);
 }
 
 main().catch((error) => {

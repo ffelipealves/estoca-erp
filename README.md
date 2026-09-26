@@ -44,6 +44,31 @@ já está em memória:
 
 ![Ordenação e filtros do catálogo](docs/demos/catalogo-ordenacao-e-filtros.gif)
 
+Todo formulário de escrita abre em **modal**, e não no topo da tabela. Cadastrar
+um produto leva o modal a uma tela só e volta para a lista já atualizada:
+
+![Cadastrando um produto em modal](docs/demos/produto-cadastro-em-modal.gif)
+
+O modal fecha pelo X, por Esc, por clique fora ou por Cancelar, e o que não foi
+salvo é descartado — ao reabrir, o formulário volta com os dados reais do
+produto. Enquanto uma operação está em andamento nada disso fecha o modal, e
+cliques ou Enter repetidos enviam uma só requisição:
+
+![Editando um produto e descartando um rascunho](docs/demos/produto-edicao-e-rascunho.gif)
+
+A exclusão pede confirmação nomeando o produto. O foco começa em **Cancelar**,
+para um Enter distraído não apagar nada, e apagar um produto leva junto o
+histórico de movimentações dele:
+
+![Excluindo um produto com confirmação](docs/demos/produto-exclusao-com-confirmacao.gif)
+
+Categorias e movimentações seguem o mesmo padrão. No celular o modal ocupa a
+largura da tela e rola por dentro, com o X sempre à vista:
+
+| Categoria | Movimentação | Celular |
+|---|---|---|
+| ![Modal de categoria](docs/screenshots/08-categoria-modal.png) | ![Modal de movimentação](docs/screenshots/10-movimentacao-modal.png) | ![Edição de produto no celular](docs/screenshots/16-produto-edicao-modal-mobile.png) |
+
 Entrada e saída somam ou retiram do saldo; **ajuste substitui** o saldo pelo
 número informado, que é o que se usa depois de uma contagem física. A prévia
 mostra o efeito antes de confirmar:
@@ -54,18 +79,19 @@ O mesmo catálogo visto pelo operador. Os controles de cadastro continuam na
 tela, marcados com cadeado, e o clique explica a restrição — o backend responde
 403 mesmo que a interface seja contornada:
 
-![Catálogo visto pelo operador](docs/screenshots/10-operador-acao-restrita.png)
+![Catálogo visto pelo operador](docs/screenshots/13-operador-acao-restrita.png)
 
 A área restrita mostra a identidade da sandbox, o que cada perfil pode fazer e o
 reset da demonstração:
 
-![Área de administração](docs/screenshots/08-administracao.png)
+![Área de administração](docs/screenshots/11-administracao.png)
 
-As doze capturas, incluindo formulários, ajuda contextual e a versão para
-celular, estão em [`docs/screenshots/`](docs/screenshots/). Os GIFs — com um
-terceiro mostrando o bloqueio do operador — estão em
-[`docs/demos/`](docs/demos/). Ambos são gerados por script, contra uma sandbox
-recém-criada, então não envelhecem em silêncio junto com a interface.
+As dezesseis capturas — com os modais de produto (cadastro, edição e exclusão),
+categoria e movimentação, a ajuda contextual e a versão para celular — estão em
+[`docs/screenshots/`](docs/screenshots/). Os seis GIFs, incluindo o do bloqueio
+do operador, estão em [`docs/demos/`](docs/demos/). Ambos são gerados por
+script, contra uma sandbox recém-criada, então não envelhecem em silêncio junto
+com a interface.
 
 ## O que está pronto
 
@@ -78,6 +104,9 @@ recém-criada, então não envelhecem em silêncio junto com a interface.
   categoria e por estoque abaixo do mínimo.
 - Entrada, saída e ajuste absoluto de estoque, com histórico paginado e filtros
   por produto, tipo de operação e período.
+- Cadastro, edição, exclusão e movimentação em modais acessíveis: foco preso e
+  devolvido, Esc, X e clique fora, rascunho descartado ao fechar e proteção
+  contra envio duplicado.
 - Área de administração com identidade da sandbox, matriz de permissões por
   perfil e reset da sessão sem deslogar.
 - Catálogo inicial realista com 16 produtos e 23 movimentações distribuídas ao
@@ -212,8 +241,14 @@ recém-criada, então refletem sempre o mesmo catálogo inicial:
 cd frontend
 npm run screenshots                      # imagens de docs/screenshots/
 npm run demos                            # GIFs de docs/demos/
+npm run demos -- produto-cadastro-em-modal   # só o GIF indicado
 BASE_URL=http://localhost:3000 npm run screenshots
 ```
+
+O script de capturas apaga as imagens numeradas anteriores antes de gravar, para
+que uma renumeração não deixe arquivos órfãos. Os GIFs pedem o `ffmpeg`
+(`sudo apt install ffmpeg` no Ubuntu/WSL) e o Chromium do Playwright com as
+bibliotecas do sistema (`sudo npx playwright install-deps chromium`).
 
 Os GIFs usam o Playwright para gravar a interação e o `ffmpeg` para converter.
 GIF, e não vídeo, porque é o único formato que o GitHub anima inline a partir de

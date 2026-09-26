@@ -5,9 +5,10 @@
  *   BASE_URL=http://localhost:3000 npm run screenshots
  *
  * Roda contra uma sandbox recém-criada, então as imagens sempre mostram o
- * mesmo catálogo inicial. Reexecutar sobrescreve os arquivos.
+ * mesmo catálogo inicial. As imagens numeradas anteriores são apagadas antes de
+ * gravar, para que uma renumeração não deixe arquivos órfãos na pasta.
  */
-import { mkdir } from "node:fs/promises";
+import { mkdir, readdir, rm } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -77,8 +78,24 @@ async function goToSection(page, label) {
   await page.waitForTimeout(2000);
 }
 
+async function clearPreviousShots() {
+  for (const file of await readdir(OUT_DIR)) {
+    if (/^\d{2}-.*\.png$/.test(file)) await rm(join(OUT_DIR, file));
+  }
+}
+
+function modal(page) {
+  return page.locator("dialog[open]");
+}
+
+async function closeModal(page) {
+  await page.getByRole("button", { name: "Fechar", exact: true }).click();
+  await page.waitForTimeout(600);
+}
+
 async function main() {
   await mkdir(OUT_DIR, { recursive: true });
+  await clearPreviousShots();
   // O Chromium formata `<input type="date">` pelo idioma da aplicação, não pelo
   // `locale` do contexto — sem isto os filtros de período saem em mm/dd/yyyy.
   const browser = await chromium.launch({
@@ -101,15 +118,36 @@ async function main() {
   await goToSection(page, "Produtos");
   await shot(page, "produtos-admin");
 
+  // Cadastro: modal preenchido, com a ajuda de um campo aberta.
   await page.getByRole("button", { name: "+ Novo produto" }).click();
   await page.waitForTimeout(800);
+  await modal(page).getByPlaceholder("Ex.: Café em grãos").fill("Café em grãos 500g");
+  await modal(page).getByPlaceholder("Ex.: CAFE-001").fill("CAFE-500");
+  await modal(page).locator('input[type="number"]').first().fill("32.90");
   await page.locator('button[aria-label="O que é o aviso de estoque baixo"]').click();
-  await shot(page, "produto-formulario-ajuda");
-  await page.getByRole("button", { name: "Fechar", exact: true }).click();
-  await page.waitForTimeout(600);
+  await shot(page, "produto-cadastro-modal");
+  await closeModal(page);
+
+  // Edição: o modal abre já com os dados do produto.
+  await page.locator("ul.divide-y > li").first().getByRole("button", { name: "Editar" }).click();
+  await page.waitForTimeout(800);
+  await shot(page, "produto-edicao-modal");
+  await closeModal(page);
+
+  // Exclusão: a confirmação nomeia o produto e o foco começa em Cancelar.
+  await page.locator("ul.divide-y > li").first().getByRole("button", { name: "Excluir" }).click();
+  await page.waitForTimeout(800);
+  await shot(page, "produto-exclusao-modal");
+  await closeModal(page);
 
   await goToSection(page, "Categorias");
   await shot(page, "categorias-admin");
+
+  await page.getByRole("button", { name: "+ Nova categoria" }).click();
+  await page.waitForTimeout(800);
+  await modal(page).getByPlaceholder("Ex.: Bebidas").fill("Bebidas");
+  await shot(page, "categoria-modal");
+  await closeModal(page);
 
   await goToSection(page, "Movimentações");
   await shot(page, "movimentacoes-admin");
@@ -117,9 +155,8 @@ async function main() {
   await page.getByRole("button", { name: "+ Nova movimentação" }).click();
   await page.waitForTimeout(800);
   await page.locator('button[aria-label="O que é o tipo de operação"]').click();
-  await shot(page, "movimentacao-formulario-ajuda");
-  await page.getByRole("button", { name: "Fechar", exact: true }).click();
-  await page.waitForTimeout(600);
+  await shot(page, "movimentacao-modal");
+  await closeModal(page);
 
   await goToSection(page, "Administração");
   await shot(page, "administracao", { fullPage: true });
@@ -153,6 +190,21 @@ async function main() {
   await mobilePage.goto(BASE_URL, { waitUntil: "domcontentloaded" });
   await login(mobilePage, "admin@estoca.demo");
   await shot(mobilePage, "painel-mobile", { fullPage: true });
+
+  // No celular o modal ocupa a largura da tela e a área rolável mantém o X à vista.
+  await mobilePage.getByRole("button", { name: "Abrir menu" }).click();
+  await mobilePage
+    .locator("#mobile-navigation button", { hasText: "Produtos" })
+    .first()
+    .click();
+  await mobilePage.waitForSelector("ul.divide-y li");
+  await mobilePage
+    .locator("ul.divide-y > li")
+    .first()
+    .getByRole("button", { name: "Editar" })
+    .click();
+  await mobilePage.waitForTimeout(800);
+  await shot(mobilePage, "produto-edicao-modal-mobile");
 
   await browser.close();
   console.log(`\n${step} imagens em docs/screenshots/`);
