@@ -113,6 +113,40 @@ test.describe("modais de produto", () => {
     await expect(page.getByText("foi atualizado")).toBeVisible();
   });
 
+  test("salvar não reenvia com muitos cliques, Enter repetido ou envios no mesmo instante", async ({
+    page,
+  }) => {
+    const counts: Record<string, number> = {};
+    await delayMutations(page, counts);
+
+    const dialog = page.locator("dialog[open]");
+    const editFirstRow = async (name: string) => {
+      await page.locator("ul.divide-y > li").first().getByRole("button", { name: "Editar" }).click();
+      await dialog.locator("input").first().fill(name);
+    };
+
+    await editFirstRow("Envio A");
+    const saveButton = dialog.getByRole("button", { name: /Salvar|Salvando/ });
+    for (let i = 0; i < 15; i += 1) {
+      await saveButton.click({ force: true, noWaitAfter: true, timeout: 500 }).catch(() => {});
+    }
+    await expect(dialog).toHaveCount(0);
+    expect(counts.PUT).toBe(1);
+
+    await editFirstRow("Envio B");
+    await dialog.locator("form").evaluate((form: HTMLFormElement) => {
+      for (let i = 0; i < 5; i += 1) form.requestSubmit();
+    });
+    await expect(dialog).toHaveCount(0);
+    expect(counts.PUT).toBe(2);
+
+    await editFirstRow("Envio C");
+    await dialog.locator("input").first().focus();
+    for (let i = 0; i < 8; i += 1) await page.keyboard.press("Enter");
+    await expect(dialog).toHaveCount(0);
+    expect(counts.PUT).toBe(3);
+  });
+
   test("erro da API mantém o modal aberto, permite corrigir e some ao reabrir", async ({
     page,
   }) => {
