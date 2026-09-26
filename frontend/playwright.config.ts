@@ -6,7 +6,13 @@ export default defineConfig({
   projects: [
     {
       name: "Mobile Safari (WebKit)",
+      testIgnore: /product-modal/,
       use: { ...devices["iPhone 13"] },
+    },
+    {
+      name: "Desktop Chromium",
+      testMatch: /product-modal/,
+      use: { ...devices["Desktop Chrome"] },
     },
   ],
   reporter: "list",

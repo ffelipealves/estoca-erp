@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import { AdminAction } from "@/components/auth/AdminAction";
 import { Modal } from "@/components/common/Modal";
@@ -151,6 +151,7 @@ export function ProductList() {
   const [deletingProductId, setDeletingProductId] = useState<string | null>(null);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const deleteLock = useRef(false);
   const [isEditSaving, setIsEditSaving] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [products, setProducts] = useState<Product[]>([]);
@@ -284,8 +285,9 @@ export function ProductList() {
   }
 
   async function handleDeleteProduct() {
-    if (!productToDelete) return;
+    if (!productToDelete || deleteLock.current) return;
 
+    deleteLock.current = true;
     setActionError(null);
     setDeletingProductId(productToDelete.id);
 
@@ -304,6 +306,7 @@ export function ProductList() {
         ),
       );
     } finally {
+      deleteLock.current = false;
       setDeletingProductId(null);
     }
   }
@@ -656,10 +659,10 @@ export function ProductList() {
           onClose={() => setProductToDelete(null)}
         >
           <div className="px-5 py-6 sm:px-7">
-            <p className="font-mono text-[10px] font-semibold uppercase tracking-[0.17em] text-rose-700">
+            <p className="pr-9 font-mono text-[10px] font-semibold uppercase tracking-[0.17em] text-rose-700">
               Exclusão definitiva · {productToDelete.sku}
             </p>
-            <h2 className="mt-1 font-display text-2xl font-bold text-[#17201d]">
+            <h2 className="mt-1 pr-9 font-display text-2xl font-bold text-[#17201d]">
               Excluir {productToDelete.name}?
             </h2>
             <p className="mt-2 text-sm leading-6 text-stone-600">
@@ -687,6 +690,7 @@ export function ProductList() {
               </button>
               <button
                 className="h-11 px-3 text-sm font-semibold text-stone-600 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-stone-700"
+                data-autofocus
                 disabled={deletingProductId === productToDelete.id}
                 onClick={() => setProductToDelete(null)}
                 type="button"

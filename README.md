@@ -193,6 +193,14 @@ npx playwright install webkit
 npm run test:e2e:webkit
 ```
 
+Os modais de produto têm testes próprios em Chromium, contra o frontend local
+(com backend e frontend rodando):
+
+```bash
+npx playwright install chromium
+PLAYWRIGHT_BASE_URL=http://localhost:3000 npm run test:e2e:modais
+```
+
 O teste WebKit roda contra a produção por padrão, remove os cookies e confirma
 que bootstrap após recarga, login e movimentação preservam a mesma sandbox pelo
 header `X-Session-Id`.

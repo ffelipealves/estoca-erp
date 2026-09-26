@@ -1,6 +1,6 @@
 "use client";
 
-import { useId, useState, type FormEvent } from "react";
+import { useId, useRef, useState, type FormEvent } from "react";
 
 import { HelpButton, HelpPanel } from "@/components/common/FieldHelp";
 import {
@@ -65,6 +65,9 @@ export function ProductForm({
   const isEditing = Boolean(product);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  // O estado só atualiza no próximo render; a ref fecha a janela entre dois
+  // envios disparados na mesma tarefa (ex.: Enter repetido).
+  const submitLock = useRef(false);
   const [values, setValues] = useState<FormValues>({
     ...initialValues,
     categoryId: product?.category_id ?? categories[0]?.id ?? "",
@@ -80,6 +83,8 @@ export function ProductForm({
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (submitLock.current) return;
+    submitLock.current = true;
     setErrorMessage(null);
     setIsSubmitting(true);
     onBusyChange?.(true);
@@ -102,6 +107,7 @@ export function ProductForm({
     } catch (error: unknown) {
       setErrorMessage(describeError(error, isEditing));
     } finally {
+      submitLock.current = false;
       setIsSubmitting(false);
       onBusyChange?.(false);
     }
@@ -119,7 +125,7 @@ export function ProductForm({
 
   return (
     <form className={className} onSubmit={handleSubmit}>
-      <div>
+      <div className="pr-9">
         <p className="font-mono text-[10px] font-semibold uppercase tracking-[0.17em] text-emerald-800">
           {isEditing ? `Editando · ${product?.sku}` : "Novo produto"}
         </p>

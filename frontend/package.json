@@ -10,7 +10,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "test:e2e:webkit": "playwright test",
+    "test:e2e:webkit": "playwright test --project=\"Mobile Safari (WebKit)\"",
+    "test:e2e:modais": "playwright test --project=\"Desktop Chromium\"",
     "screenshots": "node scripts/capture-screenshots.mjs",
     "demos": "node scripts/capture-demos.mjs"
   },
