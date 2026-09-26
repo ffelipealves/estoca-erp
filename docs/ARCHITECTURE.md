@@ -234,13 +234,16 @@ produção que bootstrap após recarga, login e movimentação preservam a sandb
 por `X-Session-Id`. A suíte não roda na CI para evitar o download do navegador
 em todos os pushes.
 
-Os modais de cadastro, edição e exclusão de produto (`components/common/Modal.tsx`, sobre
-`<dialog>` nativo) têm uma suíte própria em Chromium desktop,
-`tests/e2e/product-modal.spec.ts`, que roda contra o frontend local:
-`PLAYWRIGHT_BASE_URL=http://localhost:3000 npm run test:e2e:modais`. Cobre
+Os modais de cadastro, edição e exclusão de produto e de categoria
+(`components/common/Modal.tsx`, sobre `<dialog>` nativo) têm suítes próprias em
+Chromium desktop, `tests/e2e/product-modal.spec.ts` e
+`tests/e2e/category-modal.spec.ts`, que rodam contra o frontend local:
+`PLAYWRIGHT_BASE_URL=http://localhost:3000 npm run test:e2e:modais`. Cobrem
 fechar por X, Esc, clique fora e Cancelar (rascunho descartado e foco devolvido),
-duplo clique, cliques repetidos e envios simultâneos em Salvar, Cadastrar e Excluir (uma única requisição), bloqueio de fechamento
-durante a operação e o erro real da API (SKU duplicado) dentro do modal.
+duplo clique, cliques repetidos e envios simultâneos ao salvar, cadastrar e
+excluir (uma única requisição), bloqueio de fechamento durante a operação e o
+erro real da API (SKU ou nome duplicado) dentro do modal. Login e atraso de rede
+compartilhados ficam em `tests/e2e/support/modal-helpers.ts`.
 
 A suíte atual do backend possui 35 testes. O seed populado, o reset e os
 limites de produtos e movimentações são cobertos contra PostgreSQL real.

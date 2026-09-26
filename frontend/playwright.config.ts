@@ -6,12 +6,12 @@ export default defineConfig({
   projects: [
     {
       name: "Mobile Safari (WebKit)",
-      testIgnore: /product-modal/,
+      testIgnore: /-modal/,
       use: { ...devices["iPhone 13"] },
     },
     {
       name: "Desktop Chromium",
-      testMatch: /product-modal/,
+      testMatch: /-modal\.spec/,
       use: { ...devices["Desktop Chrome"] },
     },
   ],

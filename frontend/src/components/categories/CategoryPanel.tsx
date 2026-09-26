@@ -1,16 +1,16 @@
 "use client";
 
-import { useEffect, useMemo, useState, type FormEvent } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import { AdminAction } from "@/components/auth/AdminAction";
+import { CategoryForm } from "@/components/categories/CategoryForm";
+import { Modal } from "@/components/common/Modal";
 import { useAuth } from "@/context/AuthProvider";
 import {
   ApiError,
-  createCategory,
   deleteCategory,
   listCategories,
   listProducts,
-  updateCategory,
   type Category,
   type Product,
 } from "@/lib/api";
@@ -29,6 +29,7 @@ function sortCategories(categories: Category[]): Category[] {
 
 export function CategoryPanel() {
   const { user } = useAuth();
+  const deleteLock = useRef(false);
   const [actionErrorMessage, setActionErrorMessage] = useState<string | null>(null);
   const [categories, setCategories] = useState<Category[]>([]);
   const [categoryToDelete, setCategoryToDelete] = useState<Category | null>(null);
@@ -36,8 +37,7 @@ export function CategoryPanel() {
   const [editingCategory, setEditingCategory] = useState<Category | null>(null);
   const [loadErrorMessage, setLoadErrorMessage] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [name, setName] = useState("");
+  const [isFormSaving, setIsFormSaving] = useState(false);
   const [products, setProducts] = useState<Product[]>([]);
   const [requestKey, setRequestKey] = useState(0);
   const [showCreateForm, setShowCreateForm] = useState(false);
@@ -94,43 +94,24 @@ export function CategoryPanel() {
     setRequestKey((current) => current + 1);
   }
 
-  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    setActionErrorMessage(null);
-    setIsSubmitting(true);
+  function handleCategorySaved(category: Category) {
+    const wasEditing = editingCategory !== null;
 
-    try {
-      const category = editingCategory
-        ? await updateCategory(editingCategory.id, name.trim())
-        : await createCategory(name.trim());
-      setCategories((current) =>
-        sortCategories(
-          editingCategory
-            ? current.map((item) => (item.id === category.id ? category : item))
-            : [...current, category],
-        ),
-      );
-      setName("");
-      setEditingCategory(null);
-      setShowCreateForm(false);
-      setSuccessMessage(
-        `${category.name} foi ${editingCategory ? "atualizada" : "adicionada ao catálogo"}.`,
-      );
-    } catch (error: unknown) {
-      setActionErrorMessage(
-        describeMutationError(
-          error,
-          `Não foi possível ${editingCategory ? "salvar a categoria" : "cadastrar a categoria"}. Verifique a conexão e tente novamente.`,
-        ),
-      );
-    } finally {
-      setIsSubmitting(false);
-    }
+    setCategories((current) =>
+      sortCategories(
+        wasEditing
+          ? current.map((item) => (item.id === category.id ? category : item))
+          : [...current, category],
+      ),
+    );
+    closeForm();
+    setSuccessMessage(
+      `${category.name} foi ${wasEditing ? "atualizada" : "adicionada ao catálogo"}.`,
+    );
   }
 
   function closeForm() {
     setEditingCategory(null);
-    setName("");
     setShowCreateForm(false);
   }
 
@@ -138,14 +119,14 @@ export function CategoryPanel() {
     setActionErrorMessage(null);
     setCategoryToDelete(null);
     setEditingCategory(category);
-    setName(category.name);
     setShowCreateForm(true);
     setSuccessMessage(null);
   }
 
   async function handleDeleteCategory() {
-    if (!categoryToDelete) return;
+    if (!categoryToDelete || deleteLock.current) return;
 
+    deleteLock.current = true;
     setActionErrorMessage(null);
     setDeletingCategoryId(categoryToDelete.id);
 
@@ -164,6 +145,7 @@ export function CategoryPanel() {
         ),
       );
     } finally {
+      deleteLock.current = false;
       setDeletingCategoryId(null);
     }
   }
@@ -183,7 +165,6 @@ export function CategoryPanel() {
         </div>
         <div className="flex flex-wrap gap-2 self-start sm:self-auto">
           <AdminAction
-            ariaExpanded={showCreateForm}
             blockedClassName="inline-flex h-9 items-center justify-center gap-1.5 rounded-lg border border-dashed border-stone-400 bg-stone-100 px-4 font-mono text-[10px] font-semibold uppercase tracking-wider text-stone-500 transition hover:border-stone-500 hover:text-stone-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-stone-600"
             className="inline-flex h-9 items-center justify-center rounded-lg bg-[#17201d] px-4 font-mono text-[10px] font-semibold uppercase tracking-wider text-white shadow-[0_2px_0_#0f8a5f] transition hover:-translate-y-0.5 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700"
             isAdmin={isAdmin}
@@ -193,12 +174,11 @@ export function CategoryPanel() {
               setActionErrorMessage(null);
               setCategoryToDelete(null);
               setEditingCategory(null);
-              setName("");
               setSuccessMessage(null);
-              setShowCreateForm((current) => !current);
+              setShowCreateForm(true);
             }}
           >
-            {isAdmin && showCreateForm ? "Fechar formulário" : "+ Nova categoria"}
+            + Nova categoria
           </AdminAction>
           <button
             className="inline-flex h-9 items-center justify-center rounded-lg border border-stone-300 bg-white px-3 font-mono text-[10px] font-semibold uppercase tracking-wider text-stone-600 shadow-sm transition hover:border-stone-400 hover:text-stone-900 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700 disabled:cursor-wait disabled:opacity-50"
@@ -210,90 +190,6 @@ export function CategoryPanel() {
           </button>
         </div>
       </div>
-
-      {showCreateForm && isAdmin ? (
-        <form
-          className="border-b border-stone-300 bg-[#eef2e9] px-5 py-6 sm:px-6"
-          onSubmit={handleSubmit}
-        >
-          <p className="font-mono text-[10px] font-semibold uppercase tracking-[0.17em] text-emerald-800">
-            {editingCategory
-              ? `Editando · ${editingCategory.name}`
-              : "Nova categoria"}
-          </p>
-          <div className="mt-3 flex max-w-2xl flex-col gap-3 sm:flex-row sm:items-end">
-            <label className="flex-1">
-              <span className="font-mono text-[10px] font-semibold uppercase tracking-[0.14em] text-stone-600">
-                Nome da categoria
-              </span>
-              <input
-                autoFocus
-                className="mt-2 h-11 w-full rounded-lg border border-stone-300 bg-white px-3 text-sm text-stone-900 outline-none transition placeholder:text-stone-400 focus:border-emerald-700 focus:ring-2 focus:ring-emerald-700/10 disabled:cursor-wait disabled:bg-stone-100"
-                disabled={isSubmitting}
-                maxLength={100}
-                onChange={(event) => setName(event.target.value)}
-                placeholder="Ex.: Bebidas"
-                required
-                value={name}
-              />
-            </label>
-            <button
-              className="h-11 rounded-lg bg-[#17201d] px-5 text-sm font-bold text-white shadow-[0_3px_0_#0f8a5f] focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-emerald-700 disabled:cursor-wait disabled:opacity-60"
-              disabled={isSubmitting}
-              type="submit"
-            >
-              {isSubmitting
-                ? editingCategory
-                  ? "Salvando..."
-                  : "Cadastrando..."
-                : editingCategory
-                  ? "Salvar alterações"
-                  : "Cadastrar categoria"}
-            </button>
-            <button
-              className="h-11 px-3 text-sm font-semibold text-stone-600 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700"
-              disabled={isSubmitting}
-              onClick={closeForm}
-              type="button"
-            >
-              Cancelar
-            </button>
-          </div>
-        </form>
-      ) : null}
-
-      {categoryToDelete && isAdmin ? (
-        <div className="flex flex-col gap-4 border-b border-rose-200 bg-rose-50 px-5 py-5 sm:flex-row sm:items-center sm:justify-between sm:px-6">
-          <div>
-            <p className="font-mono text-[10px] font-semibold uppercase tracking-[0.17em] text-rose-700">
-              Excluir categoria · sem produtos vinculados
-            </p>
-            <p className="mt-1 text-sm font-semibold text-rose-950">
-              Excluir a categoria {categoryToDelete.name}?
-            </p>
-          </div>
-          <div className="flex shrink-0 flex-wrap gap-2">
-            <button
-              className="h-9 rounded-lg bg-rose-700 px-4 text-sm font-bold text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rose-700 disabled:cursor-wait disabled:opacity-60"
-              disabled={deletingCategoryId === categoryToDelete.id}
-              onClick={() => void handleDeleteCategory()}
-              type="button"
-            >
-              {deletingCategoryId === categoryToDelete.id
-                ? "Excluindo..."
-                : "Excluir categoria"}
-            </button>
-            <button
-              className="h-9 px-3 text-sm font-semibold text-stone-600 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-stone-700"
-              disabled={deletingCategoryId === categoryToDelete.id}
-              onClick={() => setCategoryToDelete(null)}
-              type="button"
-            >
-              Cancelar
-            </button>
-          </div>
-        </div>
-      ) : null}
 
       {restrictionMessage ? (
         <div
@@ -308,12 +204,6 @@ export function CategoryPanel() {
           >
             Entendi
           </button>
-        </div>
-      ) : null}
-
-      {actionErrorMessage ? (
-        <div className="border-b border-rose-200 bg-rose-50 px-5 py-3 text-sm text-rose-800 sm:px-6" role="alert">
-          {actionErrorMessage}
         </div>
       ) : null}
 
@@ -410,6 +300,72 @@ export function CategoryPanel() {
             );
           })}
         </ul>
+      ) : null}
+      {showCreateForm && isAdmin ? (
+        <Modal
+          dismissible={!isFormSaving}
+          label={editingCategory ? "Editar categoria" : "Cadastrar categoria"}
+          onClose={closeForm}
+        >
+          <CategoryForm
+            category={editingCategory ?? undefined}
+            key={editingCategory?.id ?? "nova"}
+            onBusyChange={setIsFormSaving}
+            onCancel={closeForm}
+            onSaved={handleCategorySaved}
+          />
+        </Modal>
+      ) : null}
+
+      {categoryToDelete && isAdmin ? (
+        <Modal
+          dismissible={deletingCategoryId === null}
+          label="Excluir categoria"
+          onClose={() => setCategoryToDelete(null)}
+        >
+          <div className="px-5 py-6 sm:px-7">
+            <p className="pr-9 font-mono text-[10px] font-semibold uppercase tracking-[0.17em] text-rose-700">
+              Exclusão definitiva · sem produtos vinculados
+            </p>
+            <h2 className="mt-1 pr-9 font-display text-2xl font-bold text-[#17201d]">
+              Excluir {categoryToDelete.name}?
+            </h2>
+            <p className="mt-2 text-sm leading-6 text-stone-600">
+              A categoria será removida do catálogo. Esta ação não pode ser desfeita.
+            </p>
+
+            {actionErrorMessage ? (
+              <p
+                className="mt-5 rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-800"
+                role="alert"
+              >
+                {actionErrorMessage}
+              </p>
+            ) : null}
+
+            <div className="mt-6 flex flex-wrap items-center gap-3">
+              <button
+                className="inline-flex h-11 items-center justify-center rounded-lg bg-rose-700 px-5 text-sm font-bold text-white transition hover:bg-rose-800 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-rose-700 disabled:cursor-wait disabled:opacity-60"
+                disabled={deletingCategoryId === categoryToDelete.id}
+                onClick={() => void handleDeleteCategory()}
+                type="button"
+              >
+                {deletingCategoryId === categoryToDelete.id
+                  ? "Excluindo..."
+                  : "Excluir categoria"}
+              </button>
+              <button
+                className="h-11 px-3 text-sm font-semibold text-stone-600 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-stone-700"
+                data-autofocus
+                disabled={deletingCategoryId === categoryToDelete.id}
+                onClick={() => setCategoryToDelete(null)}
+                type="button"
+              >
+                Cancelar
+              </button>
+            </div>
+          </div>
+        </Modal>
       ) : null}
     </section>
   );

@@ -1,35 +1,13 @@
 import { expect, test, type Page } from "@playwright/test";
 
-const MUTATION_URL = "**/api/v1/products**";
-const MUTATION_DELAY_MS = 1_000;
+import {
+  CLOSE_ACTIONS,
+  delayMutations as delayResourceMutations,
+  loginAsAdmin,
+} from "./support/modal-helpers";
 
-async function loginAsAdminOnProducts(page: Page) {
-  await page.goto("/");
-  await page.locator("#email").waitFor({ timeout: 100_000 });
-  await page.locator("#email").fill("admin@estoca.demo");
-  await page.locator("#password").fill("demo123");
-  await page.getByRole("button", { name: "Entrar na demonstração" }).click();
-  await page
-    .locator('nav[aria-label="Navegação principal"]')
-    .waitFor({ state: "attached", timeout: 60_000 });
-  await page
-    .locator('nav[aria-label="Navegação principal"] button', { hasText: "Produtos" })
-    .first()
-    .click();
-  await expect(page.locator("ul.divide-y > li").first()).toBeVisible();
-}
-
-/** Atrasa as mutações para que o estado "em andamento" seja observável. */
-async function delayMutations(page: Page, counts: Record<string, number>) {
-  await page.route(MUTATION_URL, async (route) => {
-    const method = route.request().method();
-    if (method === "PUT" || method === "DELETE" || method === "POST") {
-      counts[method] = (counts[method] ?? 0) + 1;
-      await new Promise((resolve) => setTimeout(resolve, MUTATION_DELAY_MS));
-    }
-    await route.continue();
-  });
-}
+const delayMutations = (page: Page, counts: Record<string, number>) =>
+  delayResourceMutations(page, "products", counts);
 
 async function openCreateModal(page: Page) {
   await page.getByRole("button", { name: "+ Novo produto" }).click();
@@ -45,7 +23,8 @@ async function fillNewProduct(page: Page, product: { name: string; price: string
 
 test.describe("modais de produto", () => {
   test.beforeEach(async ({ page }) => {
-    await loginAsAdminOnProducts(page);
+    await loginAsAdmin(page, "Produtos");
+    await expect(page.locator("ul.divide-y > li").first()).toBeVisible();
   });
 
   test("editar abre em modal e nada aparece no topo da tabela", async ({ page }) => {
@@ -64,12 +43,7 @@ test.describe("modais de produto", () => {
     await expect(page.locator("dialog[open] input").first()).toBeFocused();
   });
 
-  for (const [name, close] of [
-    ["botão X", (page: Page) => page.getByRole("button", { name: "Fechar", exact: true }).click()],
-    ["tecla Esc", (page: Page) => page.keyboard.press("Escape")],
-    ["clique fora", (page: Page) => page.mouse.click(3, 3)],
-    ["Cancelar", (page: Page) => page.getByRole("button", { name: "Cancelar" }).click()],
-  ] as const) {
+  for (const [name, close] of CLOSE_ACTIONS) {
     test(`fechar por ${name} descarta o rascunho e devolve o foco`, async ({ page }) => {
       const row = page.locator("ul.divide-y > li").first();
       const editButton = row.getByRole("button", { name: "Editar" });
@@ -225,12 +199,7 @@ test.describe("modais de produto", () => {
     await expect(page.getByRole("button", { name: "Fechar formulário" })).toHaveCount(0);
   });
 
-  for (const [name, close] of [
-    ["botão X", (page: Page) => page.getByRole("button", { name: "Fechar", exact: true }).click()],
-    ["tecla Esc", (page: Page) => page.keyboard.press("Escape")],
-    ["clique fora", (page: Page) => page.mouse.click(3, 3)],
-    ["Cancelar", (page: Page) => page.getByRole("button", { name: "Cancelar" }).click()],
-  ] as const) {
+  for (const [name, close] of CLOSE_ACTIONS) {
     test(`cadastro: fechar por ${name} descarta o rascunho e devolve o foco`, async ({ page }) => {
       const total = await page.locator("ul.divide-y > li").count();
       const newButton = page.getByRole("button", { name: "+ Novo produto" });
