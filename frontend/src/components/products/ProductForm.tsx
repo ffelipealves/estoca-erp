@@ -13,6 +13,8 @@ import {
 
 interface ProductFormProps {
   categories: Category[];
+  className?: string;
+  onBusyChange?: (isBusy: boolean) => void;
   onCancel: () => void;
   onSaved: (product: Product) => void;
   product?: Product;
@@ -49,7 +51,17 @@ const FIELD_HELP: Record<string, string> = {
   sku: "Código que identifica o produto. Não pode se repetir dentro desta sandbox, e serve para encontrá-lo na busca.",
 };
 
-export function ProductForm({ categories, onCancel, onSaved, product }: ProductFormProps) {
+const INLINE_FORM_CLASS_NAME =
+  "border-b border-stone-300 bg-[#eef2e9] px-5 py-6 sm:px-6";
+
+export function ProductForm({
+  categories,
+  className = INLINE_FORM_CLASS_NAME,
+  onBusyChange,
+  onCancel,
+  onSaved,
+  product,
+}: ProductFormProps) {
   const isEditing = Boolean(product);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -70,6 +82,7 @@ export function ProductForm({ categories, onCancel, onSaved, product }: ProductF
     event.preventDefault();
     setErrorMessage(null);
     setIsSubmitting(true);
+    onBusyChange?.(true);
 
     try {
       const sharedPayload = {
@@ -90,6 +103,7 @@ export function ProductForm({ categories, onCancel, onSaved, product }: ProductF
       setErrorMessage(describeError(error, isEditing));
     } finally {
       setIsSubmitting(false);
+      onBusyChange?.(false);
     }
   }
 
@@ -104,10 +118,7 @@ export function ProductForm({ categories, onCancel, onSaved, product }: ProductF
     "font-mono text-[10px] font-semibold uppercase tracking-[0.14em] text-stone-600";
 
   return (
-    <form
-      className="border-b border-stone-300 bg-[#eef2e9] px-5 py-6 sm:px-6"
-      onSubmit={handleSubmit}
-    >
+    <form className={className} onSubmit={handleSubmit}>
       <div>
         <p className="font-mono text-[10px] font-semibold uppercase tracking-[0.17em] text-emerald-800">
           {isEditing ? `Editando · ${product?.sku}` : "Novo produto"}

@@ -18,6 +18,10 @@ body {
   font-family: var(--font-body), Arial, Helvetica, sans-serif;
 }
 
+body:has(dialog[open]) {
+  overflow: hidden;
+}
+
 .font-display {
   font-family: var(--font-display), Impact, sans-serif;
 }

@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 
 import { AdminAction } from "@/components/auth/AdminAction";
+import { Modal } from "@/components/common/Modal";
 import { ProductForm } from "@/components/products/ProductForm";
 import { useAuth } from "@/context/AuthProvider";
 import {
@@ -150,6 +151,7 @@ export function ProductList() {
   const [deletingProductId, setDeletingProductId] = useState<string | null>(null);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [isEditSaving, setIsEditSaving] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [products, setProducts] = useState<Product[]>([]);
   const [requestKey, setRequestKey] = useState(0);
@@ -359,47 +361,6 @@ export function ProductList() {
         />
       ) : null}
 
-      {editingProduct && isAdmin ? (
-        <ProductForm
-          categories={categories}
-          key={editingProduct.id}
-          onCancel={() => setEditingProduct(null)}
-          onSaved={handleProductUpdated}
-          product={editingProduct}
-        />
-      ) : null}
-
-      {productToDelete && isAdmin ? (
-        <div className="flex flex-col gap-4 border-b border-rose-200 bg-rose-50 px-5 py-5 sm:flex-row sm:items-center sm:justify-between sm:px-6">
-          <div>
-            <p className="font-mono text-[10px] font-semibold uppercase tracking-[0.17em] text-rose-700">
-              Exclusão definitiva · {productToDelete.sku}
-            </p>
-            <p className="mt-1 text-sm font-semibold text-rose-950">
-              Excluir {productToDelete.name} e todo o histórico de movimentações vinculado?
-            </p>
-          </div>
-          <div className="flex shrink-0 flex-wrap gap-2">
-            <button
-              className="h-9 rounded-lg bg-rose-700 px-4 text-sm font-bold text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rose-700 disabled:cursor-wait disabled:opacity-60"
-              disabled={deletingProductId === productToDelete.id}
-              onClick={() => void handleDeleteProduct()}
-              type="button"
-            >
-              {deletingProductId === productToDelete.id ? "Excluindo..." : "Excluir produto"}
-            </button>
-            <button
-              className="h-9 px-3 text-sm font-semibold text-stone-600 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-stone-700"
-              disabled={deletingProductId === productToDelete.id}
-              onClick={() => setProductToDelete(null)}
-              type="button"
-            >
-              Cancelar
-            </button>
-          </div>
-        </div>
-      ) : null}
-
       {restrictionMessage ? (
         <div
           className="flex flex-wrap items-center justify-between gap-3 border-b border-amber-300 bg-amber-50 px-5 py-3 sm:px-6"
@@ -413,12 +374,6 @@ export function ProductList() {
           >
             Entendi
           </button>
-        </div>
-      ) : null}
-
-      {actionError ? (
-        <div className="border-b border-rose-200 bg-rose-50 px-5 py-3 text-sm text-rose-800 sm:px-6" role="alert">
-          {actionError}
         </div>
       ) : null}
 
@@ -675,6 +630,72 @@ export function ProductList() {
             </div>
           ) : null}
         </>
+      ) : null}
+      {editingProduct && isAdmin ? (
+        <Modal
+          dismissible={!isEditSaving}
+          label="Editar produto"
+          onClose={() => setEditingProduct(null)}
+        >
+          <ProductForm
+            categories={categories}
+            className="px-5 py-6 sm:px-7"
+            key={editingProduct.id}
+            onBusyChange={setIsEditSaving}
+            onCancel={() => setEditingProduct(null)}
+            onSaved={handleProductUpdated}
+            product={editingProduct}
+          />
+        </Modal>
+      ) : null}
+
+      {productToDelete && isAdmin ? (
+        <Modal
+          dismissible={deletingProductId === null}
+          label="Excluir produto"
+          onClose={() => setProductToDelete(null)}
+        >
+          <div className="px-5 py-6 sm:px-7">
+            <p className="font-mono text-[10px] font-semibold uppercase tracking-[0.17em] text-rose-700">
+              Exclusão definitiva · {productToDelete.sku}
+            </p>
+            <h2 className="mt-1 font-display text-2xl font-bold text-[#17201d]">
+              Excluir {productToDelete.name}?
+            </h2>
+            <p className="mt-2 text-sm leading-6 text-stone-600">
+              O produto e todo o histórico de movimentações vinculado serão
+              removidos. Esta ação não pode ser desfeita.
+            </p>
+
+            {actionError ? (
+              <p
+                className="mt-5 rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-800"
+                role="alert"
+              >
+                {actionError}
+              </p>
+            ) : null}
+
+            <div className="mt-6 flex flex-wrap items-center gap-3">
+              <button
+                className="inline-flex h-11 items-center justify-center rounded-lg bg-rose-700 px-5 text-sm font-bold text-white transition hover:bg-rose-800 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-rose-700 disabled:cursor-wait disabled:opacity-60"
+                disabled={deletingProductId === productToDelete.id}
+                onClick={() => void handleDeleteProduct()}
+                type="button"
+              >
+                {deletingProductId === productToDelete.id ? "Excluindo..." : "Excluir produto"}
+              </button>
+              <button
+                className="h-11 px-3 text-sm font-semibold text-stone-600 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-stone-700"
+                disabled={deletingProductId === productToDelete.id}
+                onClick={() => setProductToDelete(null)}
+                type="button"
+              >
+                Cancelar
+              </button>
+            </div>
+          </div>
+        </Modal>
       ) : null}
     </section>
   );
