@@ -105,7 +105,7 @@ async function main() {
   await page.waitForTimeout(800);
   await page.locator('button[aria-label="O que é o aviso de estoque baixo"]').click();
   await shot(page, "produto-formulario-ajuda");
-  await page.getByRole("button", { name: "Fechar formulário" }).click();
+  await page.getByRole("button", { name: "Fechar", exact: true }).click();
   await page.waitForTimeout(600);
 
   await goToSection(page, "Categorias");

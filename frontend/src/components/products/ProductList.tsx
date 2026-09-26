@@ -152,6 +152,7 @@ export function ProductList() {
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const deleteLock = useRef(false);
+  const [isCreateSaving, setIsCreateSaving] = useState(false);
   const [isEditSaving, setIsEditSaving] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [products, setProducts] = useState<Product[]>([]);
@@ -326,7 +327,6 @@ export function ProductList() {
         </div>
         <div className="flex flex-wrap gap-2 self-start sm:self-auto">
           <AdminAction
-            ariaExpanded={showCreateForm}
             blockedClassName="inline-flex h-9 items-center justify-center gap-1.5 rounded-lg border border-dashed border-stone-400 bg-stone-100 px-4 font-mono text-[10px] font-semibold uppercase tracking-wider text-stone-500 transition hover:border-stone-500 hover:text-stone-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-stone-600"
             className="inline-flex h-9 items-center justify-center rounded-lg bg-[#17201d] px-4 font-mono text-[10px] font-semibold uppercase tracking-wider text-white shadow-[0_2px_0_#0f8a5f] transition hover:-translate-y-0.5 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700"
             isAdmin={isAdmin}
@@ -336,10 +336,11 @@ export function ProductList() {
               setSuccessMessage(null);
               setActionError(null);
               setEditingProduct(null);
-              setShowCreateForm((current) => !current);
+              setProductToDelete(null);
+              setShowCreateForm(true);
             }}
           >
-            {isAdmin && showCreateForm ? "Fechar formulário" : "+ Novo produto"}
+            + Novo produto
           </AdminAction>
           <button
             className="inline-flex h-9 items-center justify-center gap-2 rounded-lg border border-stone-300 bg-white px-3 font-mono text-[10px] font-semibold uppercase tracking-wider text-stone-600 shadow-sm transition hover:border-stone-400 hover:text-stone-900 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700 disabled:cursor-wait disabled:opacity-50"
@@ -355,14 +356,6 @@ export function ProductList() {
           </button>
         </div>
       </div>
-
-      {showCreateForm && isAdmin ? (
-        <ProductForm
-          categories={categories}
-          onCancel={() => setShowCreateForm(false)}
-          onSaved={handleProductCreated}
-        />
-      ) : null}
 
       {restrictionMessage ? (
         <div
@@ -634,6 +627,21 @@ export function ProductList() {
           ) : null}
         </>
       ) : null}
+      {showCreateForm && isAdmin ? (
+        <Modal
+          dismissible={!isCreateSaving}
+          label="Cadastrar produto"
+          onClose={() => setShowCreateForm(false)}
+        >
+          <ProductForm
+            categories={categories}
+            onBusyChange={setIsCreateSaving}
+            onCancel={() => setShowCreateForm(false)}
+            onSaved={handleProductCreated}
+          />
+        </Modal>
+      ) : null}
+
       {editingProduct && isAdmin ? (
         <Modal
           dismissible={!isEditSaving}
@@ -642,7 +650,6 @@ export function ProductList() {
         >
           <ProductForm
             categories={categories}
-            className="px-5 py-6 sm:px-7"
             key={editingProduct.id}
             onBusyChange={setIsEditSaving}
             onCancel={() => setEditingProduct(null)}

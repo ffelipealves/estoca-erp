@@ -13,7 +13,6 @@ import {
 
 interface ProductFormProps {
   categories: Category[];
-  className?: string;
   onBusyChange?: (isBusy: boolean) => void;
   onCancel: () => void;
   onSaved: (product: Product) => void;
@@ -51,12 +50,8 @@ const FIELD_HELP: Record<string, string> = {
   sku: "Código que identifica o produto. Não pode se repetir dentro desta sandbox, e serve para encontrá-lo na busca.",
 };
 
-const INLINE_FORM_CLASS_NAME =
-  "border-b border-stone-300 bg-[#eef2e9] px-5 py-6 sm:px-6";
-
 export function ProductForm({
   categories,
-  className = INLINE_FORM_CLASS_NAME,
   onBusyChange,
   onCancel,
   onSaved,
@@ -124,7 +119,7 @@ export function ProductForm({
     "font-mono text-[10px] font-semibold uppercase tracking-[0.14em] text-stone-600";
 
   return (
-    <form className={className} onSubmit={handleSubmit}>
+    <form className="px-5 py-6 sm:px-7" onSubmit={handleSubmit}>
       <div className="pr-9">
         <p className="font-mono text-[10px] font-semibold uppercase tracking-[0.17em] text-emerald-800">
           {isEditing ? `Editando · ${product?.sku}` : "Novo produto"}
