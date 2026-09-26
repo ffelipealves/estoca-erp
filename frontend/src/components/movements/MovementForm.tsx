@@ -1,6 +1,6 @@
 "use client";
 
-import { useId, useMemo, useState, type FormEvent } from "react";
+import { useId, useMemo, useRef, useState, type FormEvent } from "react";
 
 import { HelpButton, HelpPanel } from "@/components/common/FieldHelp";
 import {
@@ -12,6 +12,7 @@ import {
 } from "@/lib/api";
 
 interface MovementFormProps {
+  onBusyChange?: (isBusy: boolean) => void;
   onCancel: () => void;
   onCreated: (movement: StockMovement) => void;
   products: Product[];
@@ -50,9 +51,17 @@ function quantityLabel(type: StockMovementType): string {
   return "Novo saldo absoluto";
 }
 
-export function MovementForm({ onCancel, onCreated, products }: MovementFormProps) {
+export function MovementForm({
+  onBusyChange,
+  onCancel,
+  onCreated,
+  products,
+}: MovementFormProps) {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  // O estado só atualiza no próximo render; a ref fecha a janela entre dois
+  // envios disparados na mesma tarefa (ex.: Enter repetido).
+  const submitLock = useRef(false);
   const [note, setNote] = useState("");
   const [productId, setProductId] = useState(products[0]?.id ?? "");
   const [quantity, setQuantity] = useState("1");
@@ -80,8 +89,11 @@ export function MovementForm({ onCancel, onCreated, products }: MovementFormProp
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (submitLock.current) return;
+    submitLock.current = true;
     setErrorMessage(null);
     setIsSubmitting(true);
+    onBusyChange?.(true);
 
     try {
       const movement = await createStockMovement({
@@ -94,16 +106,15 @@ export function MovementForm({ onCancel, onCreated, products }: MovementFormProp
     } catch (error: unknown) {
       setErrorMessage(describeError(error));
     } finally {
+      submitLock.current = false;
       setIsSubmitting(false);
+      onBusyChange?.(false);
     }
   }
 
   return (
-    <form
-      className="border-b border-stone-300 bg-[#eef2e9] px-5 py-6 sm:px-6"
-      onSubmit={handleSubmit}
-    >
-      <div>
+    <form className="px-5 py-6 sm:px-7" onSubmit={handleSubmit}>
+      <div className="pr-9">
         <p className="font-mono text-[10px] font-semibold uppercase tracking-[0.17em] text-emerald-800">
           Nova movimentação
         </p>
@@ -182,8 +193,8 @@ export function MovementForm({ onCancel, onCreated, products }: MovementFormProp
                 Produto
               </span>
               <select
-                autoFocus
                 className="mt-2 h-11 w-full rounded-lg border border-stone-300 bg-white px-3 text-sm text-stone-900 outline-none transition focus:border-emerald-700 focus:ring-2 focus:ring-emerald-700/10 disabled:cursor-wait disabled:bg-stone-100"
+                data-autofocus
                 disabled={isSubmitting}
                 onChange={(event) => {
                   const nextProduct = products.find(

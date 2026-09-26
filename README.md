@@ -193,7 +193,7 @@ npx playwright install webkit
 npm run test:e2e:webkit
 ```
 
-Os modais de produto e de categoria têm testes próprios em Chromium, contra o frontend local
+Os modais de produto, categoria e movimentação têm testes próprios em Chromium, contra o frontend local
 (com backend e frontend rodando):
 
 ```bash

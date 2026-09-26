@@ -118,7 +118,7 @@ async function main() {
   await page.waitForTimeout(800);
   await page.locator('button[aria-label="O que é o tipo de operação"]').click();
   await shot(page, "movimentacao-formulario-ajuda");
-  await page.getByRole("button", { name: "Fechar formulário" }).click();
+  await page.getByRole("button", { name: "Fechar", exact: true }).click();
   await page.waitForTimeout(600);
 
   await goToSection(page, "Administração");

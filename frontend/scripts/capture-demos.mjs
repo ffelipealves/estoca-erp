@@ -144,9 +144,9 @@ const DEMOS = [
       await page.waitForTimeout(1000);
 
       // O ajuste é a regra menos óbvia: o número digitado vira o saldo.
-      await page.locator("label", { hasText: "Ajuste" }).first().click();
+      await page.locator("dialog[open] label", { hasText: "Ajuste" }).first().click();
       await page.waitForTimeout(1200);
-      await page.locator('input[type="number"]').first().fill("42");
+      await page.locator('dialog[open] input[type="number"]').first().fill("42");
       await page.waitForTimeout(1800);
 
       await page.getByRole("button", { name: "Registrar movimentação" }).click();

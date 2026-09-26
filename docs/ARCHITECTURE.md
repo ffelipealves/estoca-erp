@@ -234,15 +234,18 @@ produção que bootstrap após recarga, login e movimentação preservam a sandb
 por `X-Session-Id`. A suíte não roda na CI para evitar o download do navegador
 em todos os pushes.
 
-Os modais de cadastro, edição e exclusão de produto e de categoria
-(`components/common/Modal.tsx`, sobre `<dialog>` nativo) têm suítes próprias em
-Chromium desktop, `tests/e2e/product-modal.spec.ts` e
-`tests/e2e/category-modal.spec.ts`, que rodam contra o frontend local:
-`PLAYWRIGHT_BASE_URL=http://localhost:3000 npm run test:e2e:modais`. Cobrem
-fechar por X, Esc, clique fora e Cancelar (rascunho descartado e foco devolvido),
-duplo clique, cliques repetidos e envios simultâneos ao salvar, cadastrar e
-excluir (uma única requisição), bloqueio de fechamento durante a operação e o
-erro real da API (SKU ou nome duplicado) dentro do modal. Login e atraso de rede
+Todos os formulários de escrita — cadastro, edição e exclusão de produto e de
+categoria, e o registro de movimentação — abrem em modal
+(`components/common/Modal.tsx`, sobre `<dialog>` nativo; `size="lg"` para o
+formulário de movimentação, que tem três colunas). Cada tela tem uma suíte
+própria em Chromium desktop, `tests/e2e/product-modal.spec.ts`,
+`category-modal.spec.ts` e `movement-modal.spec.ts`, que rodam contra o frontend
+local: `PLAYWRIGHT_BASE_URL=http://localhost:3000 npm run test:e2e:modais`.
+Cobrem fechar por X, Esc, clique fora e Cancelar (rascunho descartado e foco
+devolvido), duplo clique, cliques repetidos e envios simultâneos ao salvar,
+cadastrar, excluir e registrar (uma única requisição; no caso da movimentação,
+o saldo final confirma que nada foi somado duas vezes), bloqueio de fechamento
+durante a operação e o erro da API dentro do modal. Login e atraso de rede
 compartilhados ficam em `tests/e2e/support/modal-helpers.ts`.
 
 A suíte atual do backend possui 35 testes. O seed populado, o reset e os

@@ -9,6 +9,8 @@ interface ModalProps {
   /** Nome acessível do diálogo. */
   label: string;
   onClose: () => void;
+  /** `lg` para formulários com várias colunas. */
+  size?: "md" | "lg";
 }
 
 /**
@@ -17,7 +19,13 @@ interface ModalProps {
  * componente abre o modal; desmontar fecha. Por padrão o foco vai ao primeiro
  * controle do conteúdo; marque outro com `data-autofocus`.
  */
-export function Modal({ children, dismissible = true, label, onClose }: ModalProps) {
+export function Modal({
+  children,
+  dismissible = true,
+  label,
+  onClose,
+  size = "md",
+}: ModalProps) {
   const dialogRef = useRef<HTMLDialogElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
   const pressStartedOnBackdrop = useRef(false);
@@ -46,7 +54,7 @@ export function Modal({ children, dismissible = true, label, onClose }: ModalPro
   return (
     <dialog
       aria-label={label}
-      className="relative m-auto w-[calc(100%-2rem)] max-w-2xl overflow-hidden rounded-2xl border border-stone-300 bg-[#fffdf8] p-0 text-stone-900 shadow-[0_24px_70px_rgba(23,32,29,0.35)] backdrop:bg-stone-950/55 backdrop:backdrop-blur-[2px]"
+      className={`relative m-auto w-[calc(100%-2rem)] ${size === "lg" ? "max-w-4xl" : "max-w-2xl"} overflow-hidden rounded-2xl border border-stone-300 bg-[#fffdf8] p-0 text-stone-900 shadow-[0_24px_70px_rgba(23,32,29,0.35)] backdrop:bg-stone-950/55 backdrop:backdrop-blur-[2px]`}
       onCancel={(event) => {
         event.preventDefault();
         if (dismissible) onClose();

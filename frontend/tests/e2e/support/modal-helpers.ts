@@ -2,7 +2,7 @@ import { expect, type Page } from "@playwright/test";
 
 const MUTATION_DELAY_MS = 1_000;
 
-export type Section = "Produtos" | "Categorias";
+export type Section = "Produtos" | "Categorias" | "Movimentações";
 
 export async function loginAsAdmin(page: Page, section: Section) {
   await page.goto("/");
@@ -22,7 +22,7 @@ export async function loginAsAdmin(page: Page, section: Section) {
 /** Atrasa as mutações de um recurso para que o estado "em andamento" seja observável. */
 export async function delayMutations(
   page: Page,
-  resource: "products" | "categories",
+  resource: "products" | "categories" | "stock-movements",
   counts: Record<string, number>,
 ) {
   await page.route(`**/api/v1/${resource}**`, async (route) => {

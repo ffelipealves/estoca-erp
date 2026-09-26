@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 
+import { Modal } from "@/components/common/Modal";
 import { MovementForm } from "@/components/movements/MovementForm";
 import {
   ApiError,
@@ -81,6 +82,7 @@ function movementTone(type: StockMovementType): string {
 export function MovementList() {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isFilterError, setIsFilterError] = useState(false);
+  const [isFormSaving, setIsFormSaving] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [movementPage, setMovementPage] = useState<StockMovementPage | null>(null);
   const [page, setPage] = useState(1);
@@ -194,16 +196,18 @@ export function MovementList() {
         </div>
         <div className="flex flex-wrap gap-2 self-start sm:self-auto">
           <button
-            aria-expanded={showCreateForm}
             className="inline-flex h-9 items-center justify-center rounded-lg bg-[#17201d] px-4 font-mono text-[10px] font-semibold uppercase tracking-wider text-white shadow-[0_2px_0_#0f8a5f] transition hover:-translate-y-0.5 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700 disabled:translate-y-0 disabled:cursor-wait disabled:opacity-50"
-            disabled={isLoading}
+            // Só espera a primeira carga (o formulário precisa dos produtos).
+            // Desabilitar a cada recarga faria o foco não voltar ao botão
+            // quando o modal fecha logo após registrar uma movimentação.
+            disabled={isLoading && products.length === 0}
             onClick={() => {
               setSuccessMessage(null);
-              setShowCreateForm((current) => !current);
+              setShowCreateForm(true);
             }}
             type="button"
           >
-            {showCreateForm ? "Fechar formulário" : "+ Nova movimentação"}
+            + Nova movimentação
           </button>
           <button
             className="inline-flex h-9 items-center justify-center rounded-lg border border-stone-300 bg-white px-3 font-mono text-[10px] font-semibold uppercase tracking-wider text-stone-600 shadow-sm transition hover:border-stone-400 hover:text-stone-900 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700 disabled:cursor-wait disabled:opacity-50"
@@ -215,14 +219,6 @@ export function MovementList() {
           </button>
         </div>
       </div>
-
-      {showCreateForm ? (
-        <MovementForm
-          onCancel={() => setShowCreateForm(false)}
-          onCreated={handleMovementCreated}
-          products={products}
-        />
-      ) : null}
 
       {successMessage ? (
         <div className="border-b border-emerald-200 bg-emerald-50 px-5 py-3 text-sm font-medium text-emerald-900 sm:px-6" role="status">
@@ -470,6 +466,22 @@ export function MovementList() {
             </div>
           ) : null}
         </>
+      ) : null}
+
+      {showCreateForm ? (
+        <Modal
+          dismissible={!isFormSaving}
+          label="Registrar movimentação"
+          onClose={() => setShowCreateForm(false)}
+          size="lg"
+        >
+          <MovementForm
+            onBusyChange={setIsFormSaving}
+            onCancel={() => setShowCreateForm(false)}
+            onCreated={handleMovementCreated}
+            products={products}
+          />
+        </Modal>
       ) : null}
     </section>
   );
