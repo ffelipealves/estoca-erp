@@ -48,10 +48,10 @@ async def test_category_reads_require_auth_and_are_isolated_by_session() -> None
             )
             assert category_list.status_code == 200
             assert [item["name"] for item in category_list.json()] == [
-                "Alimentos",
-                "Eletrônicos",
-                "Escritório",
-                "Limpeza",
+                "Elétrica",
+                "Ferramentas manuais",
+                "Fixação",
+                "Hidráulica",
             ]
 
             category_id = UUID(category_list.json()[0]["id"])
@@ -61,7 +61,7 @@ async def test_category_reads_require_auth_and_are_isolated_by_session() -> None
             )
             assert detail.status_code == 200
             assert detail.json()["id"] == str(category_id)
-            assert detail.json()["name"] == "Alimentos"
+            assert detail.json()["name"] == "Elétrica"
 
             cross_session = await client_b.get(
                 f"/api/v1/categories/{category_id}",
@@ -151,7 +151,7 @@ async def test_category_create_and_update_are_admin_only_and_session_scoped() ->
             duplicate_update = await client_a.put(
                 f"/api/v1/categories/{category_id}",
                 headers=admin_headers_a,
-                json={"name": "Alimentos"},
+                json={"name": "Elétrica"},
             )
             assert duplicate_update.status_code == 409
 

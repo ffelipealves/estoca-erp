@@ -25,9 +25,10 @@ As credenciais ficam preenchidas na interface:
 | Administrador | `admin@estoca.demo` | `demo123` | CRUD do catálogo e movimentações |
 | Operador | `operador@estoca.demo` | `demo123` | Consulta e movimentações |
 
-Cada nova sandbox já começa pronta para exploração, com 4 categorias, 16
-produtos, saldos variados e 23 movimentações de exemplo. Há entradas, saídas,
-um ajuste de inventário e produtos abaixo do estoque mínimo. O administrador
+Cada nova sandbox já começa pronta para exploração: um depósito de material de
+construção com 4 categorias, 16 produtos e 39 movimentações (o estoque inicial
+de cada produto e mais 23 de exemplo). Há entradas, saídas, ajustes de
+inventário e produtos abaixo do estoque mínimo. O administrador
 pode restaurar esse estado inicial usando o reset da sessão.
 
 ## Telas
@@ -109,7 +110,7 @@ com a interface.
   contra envio duplicado.
 - Área de administração com identidade da sandbox, matriz de permissões por
   perfil e reset da sessão sem deslogar.
-- Catálogo inicial realista com 16 produtos e 23 movimentações distribuídas ao
+- Catálogo inicial realista com 16 produtos e 39 movimentações distribuídas ao
   longo de 14 dias.
 - Bloqueio de saída sem saldo e atualização atômica do produto e do histórico.
 - Interface responsiva validada em produção no Chrome e no WebKit em viewport

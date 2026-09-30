@@ -77,7 +77,7 @@ async def test_reset_is_admin_only_and_preserves_session_and_users() -> None:
 
             async with async_session_factory() as db:
                 assert (
-                    await StockMovementRepository(db).count_by_session(session_id) == 24
+                    await StockMovementRepository(db).count_by_session(session_id) == 40
                 )
 
             reset = await client.post(
@@ -103,7 +103,7 @@ async def test_reset_is_admin_only_and_preserves_session_and_users() -> None:
 
             assert len(categories_after) == 4
             assert len(products_after) == 16
-            assert movement_count == 23
+            assert movement_count == 39
             assert {item.id for item in categories_before}.isdisjoint(
                 item.id for item in categories_after
             )

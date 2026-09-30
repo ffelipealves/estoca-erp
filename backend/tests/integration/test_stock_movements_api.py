@@ -128,8 +128,8 @@ async def test_stock_movement_api_supports_roles_pagination_and_isolation() -> N
                 params={"page": 2, "page_size": 1},
             )
             assert first_page.status_code == 200
-            assert first_page.json()["total"] == 25
-            assert first_page.json()["pages"] == 25
+            assert first_page.json()["total"] == 41
+            assert first_page.json()["pages"] == 41
             assert first_page.json()["items"][0]["type"] == "ajuste"
             assert second_page.json()["items"][0]["type"] == "entrada"
 
@@ -138,7 +138,9 @@ async def test_stock_movement_api_supports_roles_pagination_and_isolation() -> N
                 headers=operator_headers,
                 params={"product_id": product_id},
             )
-            assert by_product.json()["total"] == 3
+            # ELE-2025 chega do seed com estoque inicial e uma entrada; o teste
+            # soma a entrada do operador e o ajuste do admin.
+            assert by_product.json()["total"] == 4
 
             bootstrap_b = await client_b.post("/api/v1/sessions/bootstrap")
             session_b_id = UUID(bootstrap_b.json()["session_id"])

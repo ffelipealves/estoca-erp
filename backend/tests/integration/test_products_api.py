@@ -65,27 +65,25 @@ async def test_product_reads_filter_and_isolate_sessions() -> None:
             search = await client_a.get(
                 "/api/v1/products",
                 headers=headers_a,
-                params={"search": "mouse"},
+                params={"search": "alicate"},
             )
-            assert [item["sku"] for item in search.json()] == ["MS-001"]
+            assert [item["sku"] for item in search.json()] == ["FER-1208"]
 
             categories = await client_a.get(
                 "/api/v1/categories",
                 headers=headers_a,
             )
-            electronics_id = next(
-                item["id"]
-                for item in categories.json()
-                if item["name"] == "Eletrônicos"
+            electrical_id = next(
+                item["id"] for item in categories.json() if item["name"] == "Elétrica"
             )
             by_category = await client_a.get(
                 "/api/v1/products",
                 headers=headers_a,
-                params={"category_id": electronics_id},
+                params={"category_id": electrical_id},
             )
             assert len(by_category.json()) == 4
             assert {item["category_id"] for item in by_category.json()} == {
-                electronics_id
+                electrical_id
             }
 
             low_stock = await client_a.get(
@@ -98,8 +96,8 @@ async def test_product_reads_filter_and_isolate_sessions() -> None:
                 headers=headers_a,
                 params={"low_stock": "false"},
             )
-            assert len(low_stock.json()) == 2
-            assert len(regular_stock.json()) == 14
+            assert len(low_stock.json()) == 5
+            assert len(regular_stock.json()) == 11
 
             cross_session_detail = await client_b.get(
                 f"/api/v1/products/{product_id}",
@@ -113,7 +111,7 @@ async def test_product_reads_filter_and_isolate_sessions() -> None:
             cross_session_filter = await client_b.get(
                 "/api/v1/products",
                 headers=headers_b,
-                params={"category_id": electronics_id},
+                params={"category_id": electrical_id},
             )
             assert cross_session_filter.json() == []
     finally:

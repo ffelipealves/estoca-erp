@@ -40,7 +40,7 @@ async def test_balance_timeline_tracks_total_stock_over_time() -> None:
             points = timeline.json()["points"]
 
             # Um ponto por movimentação do seed, em ordem cronológica.
-            assert len(points) == 23
+            assert len(points) == 39
             stamps = [point["at"] for point in points]
             assert stamps == sorted(stamps)
 
@@ -67,7 +67,7 @@ async def test_balance_timeline_tracks_total_stock_over_time() -> None:
                 headers=headers,
             )
             after_points = after.json()["points"]
-            assert len(after_points) == 24
+            assert len(after_points) == 40
             assert after_points[-1]["total_quantity"] == units_now + 9
 
             # Um ajuste é quantidade absoluta: o total move pelo delta, não pelo
@@ -139,7 +139,7 @@ async def test_balance_timeline_is_isolated_per_session() -> None:
             points_b = timeline_b.json()["points"]
 
             # A entrada gorda da sessão A não pode aparecer na série da sessão B.
-            assert len(points_b) == 23
+            assert len(points_b) == 39
             products_b = await client_b.get("/api/v1/products", headers=logins[1])
             assert points_b[-1]["total_quantity"] == sum(
                 item["quantity"] for item in products_b.json()

@@ -193,16 +193,21 @@ em dev, `SESSION_COOKIE_SECURE=false` / `SAMESITE=lax`. O banco de teste
 ## Seed da sandbox
 
 O bootstrap de uma sessão nova e o reset administrativo criam o mesmo estado
-inicial: 4 categorias, 16 produtos, 2 usuários demo e 23 movimentações
-distribuídas ao longo de 14 dias. O seed inteiro roda em uma transação e
-`created_at` usa `server_default=func.now()` — que no Postgres é o horário da
-*transação* —, então sem uma passada explícita de retrodatação as 23
-movimentações nasceriam com o mesmo carimbo: a linha do tempo somem e o filtro
-por período fica sem o que filtrar. A rota pública continua recusando
-`created_at` vindo do cliente; quem fabrica a data aqui é o servidor montando a
-sandbox. A expiração de sessão não é afetada — ela olha `sessions`. Os
-produtos começam com saldos variados; dois produtos ficam abaixo do estoque
-mínimo para alimentar a fila de reposição.
+inicial: um depósito de material de construção com 4 categorias (Ferramentas
+manuais, Elétrica, Hidráulica e Fixação), 16 produtos, 2 usuários demo e 39
+movimentações — o estoque inicial de cada produto mais 23 entradas, saídas e
+ajustes do dia a dia. O histórico começa à meia-noite de 14 dias atrás, no
+horário de Brasília: o estoque inicial entra às 8h do primeiro dia, um produto
+por minuto, e cada movimentação tem dia e hora fixos, a última na véspera. O
+seed inteiro roda em uma transação e `created_at` usa
+`server_default=func.now()` — que no Postgres é o horário da *transação* —,
+então sem essa retrodatação explícita as movimentações nasceriam com o mesmo
+carimbo: a linha do tempo some e o filtro por período fica sem o que filtrar.
+A rota pública continua recusando `created_at` vindo do cliente; quem fabrica a
+data aqui é o servidor montando a sandbox. A expiração de sessão não é afetada
+— ela olha `sessions`. Os ajustes são registrados pelo admin; entradas e saídas,
+pelo operador. Cinco produtos terminam no limite mínimo ou abaixo dele, um de
+cada urgência da fila de reposição (zerado, crítico e baixo).
 
 O seed não escreve `product.quantity` diretamente. Primeiro cria os produtos e
 usuários, depois registra o estoque inicial e o histórico adicional por
@@ -214,7 +219,7 @@ bootstrap na mesma sessão não duplica nenhum item.
 
 **Backend** (pytest + `httpx.AsyncClient` contra Postgres real de teste) — 5 fluxos obrigatórios, todos com teste dedicado:
 1. **Isolamento entre sessões** — dois clientes com cookie jars distintos não veem dados um do outro. Prova a premissa central do produto.
-2. **Seed correto** — bootstrap cria 4 categorias, 16 produtos, 23
+2. **Seed correto** — bootstrap cria 4 categorias, 16 produtos, 39
    movimentações e 2 usuários demo; segunda chamada com o mesmo cookie não
    recria.
 3. **Expiração** (com `freezegun`) — 2h inatividade OU 24h de vida; `cleanup/expired` remove só as vencidas; `wipe-all` remove tudo.

@@ -167,7 +167,7 @@ async def test_stock_movement_period_filter_is_isolated_per_session() -> None:
             )
             assert wide_open.status_code == 200
             # Só o seed da própria sessão, nunca o da sessão A.
-            assert wide_open.json()["total"] == 23
+            assert wide_open.json()["total"] == 39
     finally:
         if created_session_ids:
             async with async_session_factory() as db:
