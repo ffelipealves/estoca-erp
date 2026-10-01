@@ -28,6 +28,7 @@ Alvo fixo: **$0/mês, sem cartão de crédito em nenhuma plataforma** — Vercel
 
 - `docs/ARCHITECTURE.md` — modelo de dados, lista de endpoints, `docker-compose.yml`, workflows do GitHub Actions, estratégia de testes. Documento de design-alvo: uma vez que o código exista, o código manda — trate divergência como o doc ficou desatualizado (atualize) ou como desvio não intencional (corrija o código).
 - `docs/ROADMAP.md` — cronograma dia a dia das 2 semanas, critérios de conclusão de cada checkpoint, e o progresso atual.
+- `docs/DESIGN.md` — sistema visual "Coletor" do frontend: tokens de cor, tipografia no eixo de largura da Archivo, regras nomeadas (um só amarelo, cor de operação só nos sinais) e anatomia dos componentes.
 
 ## Como trabalhar neste repo
 

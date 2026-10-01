@@ -1,23 +1,212 @@
 @import "tailwindcss";
+@import "tw-animate-css";
+
+/* Só tema claro: `dark:` vale apenas sob uma classe `.dark`, que nunca é usada. */
+@custom-variant dark (&:is(.dark *));
+
+/* Variantes de estado dos primitivos Radix, as mesmas do `shadcn/tailwind.css`.
+   Só as usadas pelos componentes de `components/ui`, sem trazer a CLI do shadcn. */
+@custom-variant data-open {
+  &:where([data-state="open"]),
+  &:where([data-open]:not([data-open="false"])) {
+    @slot;
+  }
+}
+
+@custom-variant data-closed {
+  &:where([data-state="closed"]),
+  &:where([data-closed]:not([data-closed="false"])) {
+    @slot;
+  }
+}
+
+@custom-variant data-disabled {
+  &:where([data-disabled="true"]),
+  &:where([data-disabled]:not([data-disabled="false"])) {
+    @slot;
+  }
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-archivo), ui-sans-serif, system-ui, sans-serif;
+  --font-heading: var(--font-archivo), ui-sans-serif, system-ui, sans-serif;
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-border: var(--border);
+  --color-destructive: var(--destructive);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--accent);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted: var(--muted);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary: var(--secondary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary: var(--primary);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-popover: var(--popover);
+  --color-card-foreground: var(--card-foreground);
+  --color-card: var(--card);
+
+  /* Coletor world */
+  --color-rail: var(--rail);
+  --color-rail-raised: var(--rail-raised);
+  --color-rail-foreground: var(--rail-foreground);
+  --color-rail-muted: var(--rail-muted);
+  --color-trigger: var(--trigger);
+  --color-trigger-hover: var(--trigger-hover);
+  --color-trigger-ink: var(--trigger-ink);
+  --color-entrada: var(--entrada);
+  --color-saida: var(--saida);
+  --color-ajuste: var(--ajuste);
+  --color-warn: var(--warn);
+  --color-warn-soft: var(--warn-soft);
+  --color-danger-soft: var(--danger-soft);
+  --color-well: var(--well);
+
+  /* One radius rule: keycaps 4px, controls 6px, panels 10px, dialogs 12px */
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 10px;
+  --radius-xl: 12px;
+  --radius-2xl: 12px;
+}
 
 :root {
-  color-scheme: light;
+  --radius: 10px;
+
+  --background: #eef1f0;
+  --foreground: #1b1f22;
+  --card: #fbfcfb;
+  --card-foreground: #1b1f22;
+  --popover: #fbfcfb;
+  --popover-foreground: #1b1f22;
+  --primary: #23272b;
+  --primary-foreground: #f4f6f5;
+  --secondary: #e3e8e6;
+  --secondary-foreground: #1b1f22;
+  --muted: #e3e8e6;
+  --muted-foreground: #545d62;
+  --accent: #e3e8e6;
+  --accent-foreground: #1b1f22;
+  --destructive: #9c4535;
+  --border: #d3dad8;
+  --input: #bfc8c5;
+  --ring: #1b1f22;
+  --well: #e6eae8;
+
+  --rail: #23272b;
+  --rail-raised: #30363b;
+  --rail-foreground: #eef1f0;
+  --rail-muted: #a3acb0;
+
+  --trigger: #eccb67;
+  --trigger-hover: #debe5f;
+  --trigger-ink: #1b1f22;
+
+  --entrada: #368d64;
+  --saida: #973c30;
+  --ajuste: #3c58b4;
+  --warn: #8a5300;
+  --warn-soft: #f7ecd4;
+  --danger-soft: #f6e1dc;
 }
 
-* {
-  box-sizing: border-box;
+@layer base {
+  * {
+    @apply border-border;
+  }
+  html {
+    @apply font-sans;
+    font-optical-sizing: auto;
+    -webkit-text-size-adjust: 100%;
+  }
+  body {
+    @apply bg-background text-foreground;
+    font-feature-settings: "tnum" 1;
+    caret-color: var(--foreground);
+  }
+  ::selection {
+    background: var(--trigger);
+    color: var(--trigger-ink);
+  }
+  :focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
+  }
+  .on-rail :focus-visible {
+    outline-color: var(--trigger);
+  }
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: #b3bcb9 transparent;
+  }
+  a {
+    text-underline-offset: 3px;
+  }
+  input[type="number"]::-webkit-inner-spin-button,
+  input[type="number"]::-webkit-outer-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+  input[type="number"] {
+    -moz-appearance: textfield;
+  }
 }
 
-html {
-  background: #020617;
+@layer components {
+  /* The collector display: condensed, heavy, fixed-width digits */
+  .readout {
+    font-stretch: 72%;
+    font-weight: 760;
+    font-variant-numeric: tabular-nums lining-nums;
+    letter-spacing: -0.01em;
+    line-height: 1;
+  }
+  .condensed {
+    font-stretch: 80%;
+  }
+  .sku {
+    font-variant-numeric: tabular-nums;
+    letter-spacing: 0.04em;
+    font-stretch: 88%;
+  }
 }
 
-body {
-  margin: 0;
-  min-height: 100vh;
-  font-family: var(--font-body), Arial, Helvetica, sans-serif;
+/* "Good read": one flash on the row a movement just produced */
+@keyframes good-read {
+  0% {
+    background-color: color-mix(in oklab, var(--entrada) 22%, transparent);
+  }
+  100% {
+    background-color: transparent;
+  }
+}
+.good-read {
+  animation: good-read 1.6s cubic-bezier(0.16, 1, 0.3, 1) 1;
 }
 
+@media (prefers-reduced-motion: reduce) {
+  .good-read {
+    animation: none;
+    background-color: color-mix(in oklab, var(--entrada) 12%, transparent);
+  }
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* Toasts speak in the product's face, not the library default. */
+html [data-sonner-toaster][data-sonner-toaster] {
+  font-family: var(--font-sans);
+}
+
+/* Legado: apoio às telas anteriores ao redesign enquanto convivem com as novas.
+   Sai junto com elas (etapa F10 do plano). */
 body:has(dialog[open]) {
   overflow: hidden;
 }

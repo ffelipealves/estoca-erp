@@ -1,7 +1,10 @@
-import type { NextConfig } from "next";
+import type { NextConfig } from "next"
 
 const nextConfig: NextConfig = {
-  /* config options here */
-};
+  experimental: {
+    // Phosphor ships a barrel; import only the icons we use.
+    optimizePackageImports: ["@phosphor-icons/react"],
+  },
+}
 
-export default nextConfig;
+export default nextConfig
