@@ -7,10 +7,12 @@ import {
   bootstrapSession,
   checkHealth,
   clearStoredAuth,
+  clearStoredSessionId,
+  createCategory as requestCreateCategory,
   createProduct as requestCreateProduct,
   createStockMovement,
+  deleteCategory as requestDeleteCategory,
   deleteProduct as requestDeleteProduct,
-  clearStoredSessionId,
   getSessionInfo,
   getStoredAuth,
   getStoredSessionId,
@@ -20,13 +22,23 @@ import {
   storeAuth,
   storeSessionId,
   subscribeApi,
+  updateCategory as requestUpdateCategory,
   updateProduct as requestUpdateProduct,
   type AuthUser,
   type SessionInfo,
 } from "@/lib/api"
 import { DEMO_PASSWORD, demoUserFor } from "@/lib/demo-users"
 import { toCategory, toMovement, toPriceString, toProduct } from "./adapters"
-import type { Category, Movement, MovementDraft, MovementType, Product, ProductDraft, Role } from "./types"
+import type {
+  Category,
+  CategoryDraft,
+  Movement,
+  MovementDraft,
+  MovementType,
+  Product,
+  ProductDraft,
+  Role,
+} from "./types"
 
 /** How long the free API tier gets to wake up and prepare the sandbox. */
 const BOOT_TIMEOUT_MS = 90_000
@@ -87,6 +99,10 @@ export interface EstocaActions {
   updateProduct(id: string, draft: Omit<ProductDraft, "initialQuantity">): Promise<WriteResult>
   /** Deletes the product and, with it, its movement history. */
   deleteProduct(id: string): Promise<WriteResult>
+  createCategory(draft: CategoryDraft): Promise<WriteResult>
+  updateCategory(id: string, draft: CategoryDraft): Promise<WriteResult>
+  /** The API refuses while products still use the category. */
+  deleteCategory(id: string): Promise<WriteResult>
 }
 
 interface BootInfo {
@@ -142,6 +158,12 @@ function productWriteError(error: unknown, fallback: string): WriteResult<never>
   if (error instanceof ApiError && error.status === 404) {
     return { ok: false, field: "categoryId", message: error.message }
   }
+  return { ok: false, message: describeError(error, fallback) }
+}
+
+/** The API answers 409 when another category already has the name. */
+function categoryWriteError(error: unknown, fallback: string): WriteResult<never> {
+  if (error instanceof ApiError && error.status === 409) return { ok: false, field: "name", message: error.message }
   return { ok: false, message: describeError(error, fallback) }
 }
 
@@ -394,6 +416,38 @@ export function EstocaProvider({ children }: { children: React.ReactNode }) {
           return { ok: true, value: undefined }
         } catch (error) {
           return { ok: false, message: describeError(error, "Não foi possível excluir o produto.") }
+        }
+      },
+      async createCategory(draft) {
+        try {
+          const created = toCategory(
+            await requestCreateCategory(draft.name.trim(), draft.description.trim() || undefined),
+          )
+          setCatalog((c) => ({ ...c, categories: [...c.categories, created] }))
+          return { ok: true, value: undefined }
+        } catch (error) {
+          return categoryWriteError(error, "Não foi possível criar a categoria.")
+        }
+      },
+      async updateCategory(id, draft) {
+        try {
+          // PUT replaces the whole category: the description always goes along.
+          const updated = toCategory(
+            await requestUpdateCategory(id, draft.name.trim(), draft.description.trim() || undefined),
+          )
+          setCatalog((c) => ({ ...c, categories: c.categories.map((cat) => (cat.id === id ? updated : cat)) }))
+          return { ok: true, value: undefined }
+        } catch (error) {
+          return categoryWriteError(error, "Não foi possível salvar a categoria.")
+        }
+      },
+      async deleteCategory(id) {
+        try {
+          await requestDeleteCategory(id)
+          setCatalog((c) => ({ ...c, categories: c.categories.filter((cat) => cat.id !== id) }))
+          return { ok: true, value: undefined }
+        } catch (error) {
+          return { ok: false, message: describeError(error, "Não foi possível excluir a categoria.") }
         }
       },
     }),

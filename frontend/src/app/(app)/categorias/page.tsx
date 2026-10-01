@@ -1,9 +1,8 @@
 import type { Metadata } from "next"
-import { CategoryPanel } from "@/components/categories/CategoryPanel"
+import { CategoriasView } from "@/components/estoca/categorias/categorias-view"
 
 export const metadata: Metadata = { title: "Categorias" }
 
-// Provisório: a tela anterior ao redesign, até a etapa que a substitui.
-export default function Page() {
-  return <CategoryPanel />
+export default function CategoriasPage() {
+  return <CategoriasView />
 }
