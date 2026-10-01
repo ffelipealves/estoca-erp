@@ -72,46 +72,45 @@ class StockMovementRepository:
     async def balance_timeline(
         self,
         session_id: UUID,
-    ) -> list[tuple[datetime, int]]:
+    ) -> list[tuple[UUID, datetime, StockMovementType, UUID, int, int]]:
         """Saldo total da sessão após cada movimentação, em ordem cronológica.
 
-        `resulting_quantity` é o saldo *daquele produto*, então somá-lo direto
-        daria um número sem sentido. `LAG` particionado por produto devolve o
-        saldo anterior do mesmo produto; a diferença é quanto aquele evento moveu
-        o estoque como um todo, e a soma corrente desses deltas é o saldo total
-        ao longo do tempo. Uma consulta só, sem replay no cliente.
-
-        Premissa: dois eventos do mesmo produto não compartilham `created_at`.
-        Com empate, a ordem entre eles cairia no UUID — arbitrária — e a cadeia
-        telescoparia para um saldo que não é o último, fazendo o ponto final
-        divergir do catálogo. Cada escrita da API é uma transação própria, e o
-        seed espalha o histórico justamente para não empatar.
+        Cada linha devolve `(id, created_at, type, product_id, delta, total)`.
+        O delta é quanto aquele evento moveu o estoque como um todo:
+        `resulting_quantity - previous_quantity`, os dois gravados sob o lock do
+        produto — então ele é exato mesmo quando escritas concorrentes no mesmo
+        produto têm `created_at` fora da ordem real. A soma corrente dos deltas é
+        o saldo total ao longo do tempo, numa consulta só, sem replay no cliente.
+        O último ponto sempre fecha com a soma dos saldos do catálogo; empates de
+        `created_at` só decidem a ordem dos pontos intermediários, pelo `id`.
         """
-        previous = func.lag(StockMovement.resulting_quantity).over(
-            partition_by=StockMovement.product_id,
-            order_by=(StockMovement.created_at, StockMovement.id),
-        )
-        deltas = (
+        delta = StockMovement.resulting_quantity - StockMovement.previous_quantity
+        order = (StockMovement.created_at, StockMovement.id)
+        statement = (
             select(
-                StockMovement.id.label("id"),
-                StockMovement.created_at.label("at"),
-                (StockMovement.resulting_quantity - func.coalesce(previous, 0)).label(
-                    "delta"
-                ),
+                StockMovement.id,
+                StockMovement.created_at,
+                StockMovement.type,
+                StockMovement.product_id,
+                delta.label("delta"),
+                func.sum(delta).over(order_by=order).label("total"),
             )
             .where(StockMovement.session_id == session_id)
-            .subquery()
+            .order_by(*order)
         )
 
-        statement = select(
-            deltas.c.at,
-            func.sum(deltas.c.delta)
-            .over(order_by=(deltas.c.at, deltas.c.id))
-            .label("total"),
-        ).order_by(deltas.c.at, deltas.c.id)
-
         result = await self.db.execute(statement)
-        return [(row.at, int(row.total)) for row in result]
+        return [
+            (
+                row.id,
+                row.created_at,
+                row.type,
+                row.product_id,
+                int(row.delta),
+                int(row.total),
+            )
+            for row in result
+        ]
 
     async def create(self, movement: StockMovement) -> StockMovement:
         self.db.add(movement)

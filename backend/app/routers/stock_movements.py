@@ -84,7 +84,14 @@ async def get_balance_timeline(
     points = await StockMovementService(db).balance_timeline(current_user.session_id)
     return StockBalanceTimeline(
         points=[
-            StockBalancePoint(at=point.at, total_quantity=point.total_quantity)
+            StockBalancePoint(
+                at=point.at,
+                movement_id=point.movement_id,
+                type=point.type,
+                product_id=point.product_id,
+                delta=point.delta,
+                total_quantity=point.total_quantity,
+            )
             for point in points
         ]
     )

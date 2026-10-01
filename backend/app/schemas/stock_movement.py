@@ -45,7 +45,13 @@ class StockMovementPage(BaseModel):
 
 
 class StockBalancePoint(BaseModel):
+    """Saldo total da sessão logo após uma movimentação."""
+
     at: datetime
+    movement_id: UUID
+    type: StockMovementType
+    product_id: UUID
+    delta: int
     total_quantity: int
 
 

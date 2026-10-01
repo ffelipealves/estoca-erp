@@ -154,9 +154,11 @@ separados.
   `server_default=func.now()`, que no PostgreSQL é o horário da *transação* —
   sem essa passada, todas nasceriam com o mesmo carimbo e nem a série histórica
   nem o filtro por período teriam o que mostrar.
-- **Agregação no banco:** a série de saldo sai de uma consulta só.
-  `resulting_quantity` é o saldo de um produto, então `LAG` particionado por
-  produto extrai o delta de cada evento e a soma corrente reconstrói o total.
+- **Agregação no banco:** a série de saldo sai de uma consulta só. Cada
+  movimentação guarda o saldo do produto antes e depois de aplicar, então o
+  delta do evento vem da própria linha e a soma corrente reconstrói o total.
+  Cada ponto também traz a operação e o produto, para o gráfico marcar
+  entradas, saídas e ajustes.
 - **Gráficos sem dependência:** desenhados em SVG e CSS, com a série de saldo em
   degrau — o saldo muda no evento e se mantém até o próximo, e interpolar
   afirmaria uma variação contínua que não aconteceu.

@@ -53,6 +53,23 @@ async def test_balance_timeline_tracks_total_stock_over_time() -> None:
             assert opening == sorted(opening)
             assert points[0]["total_quantity"] > 0
 
+            # Cada ponto é o anterior mais o delta da sua movimentação.
+            assert points[0]["total_quantity"] == points[0]["delta"]
+            for before, after in zip(points, points[1:], strict=False):
+                assert after["total_quantity"] == (
+                    before["total_quantity"] + after["delta"]
+                )
+
+            # Cada ponto diz qual operação e qual produto moveram o total: é o
+            # que permite marcar entrada, saída e ajuste no gráfico.
+            product_ids = {item["id"] for item in products.json()}
+            assert {point["product_id"] for point in points} == product_ids
+            assert len({point["movement_id"] for point in points}) == 39
+            types = [point["type"] for point in points]
+            assert types.count("ajuste") == 3
+            assert types.count("saida") == 15
+            assert types.count("entrada") == 21
+
             # Uma entrada nova move o último ponto exatamente pelo seu tamanho.
             product = products.json()[0]
             created = await client.post(
@@ -69,6 +86,10 @@ async def test_balance_timeline_tracks_total_stock_over_time() -> None:
             after_points = after.json()["points"]
             assert len(after_points) == 40
             assert after_points[-1]["total_quantity"] == units_now + 9
+            assert after_points[-1]["movement_id"] == created.json()["id"]
+            assert after_points[-1]["type"] == "entrada"
+            assert after_points[-1]["product_id"] == product["id"]
+            assert after_points[-1]["delta"] == 9
 
             # Um ajuste é quantidade absoluta: o total move pelo delta, não pelo
             # valor informado.
@@ -82,13 +103,10 @@ async def test_balance_timeline_tracks_total_stock_over_time() -> None:
                 "/api/v1/stock-movements/balance-timeline",
                 headers=headers,
             )
-            expected = (
-                units_now
-                + 9
-                - adjustment.json()["quantity"]
-                - (product["quantity"] + 9 - adjustment.json()["resulting_quantity"])
-            )
-            assert adjusted.json()["points"][-1]["total_quantity"] == expected
+            last = adjusted.json()["points"][-1]
+            assert last["type"] == "ajuste"
+            assert last["delta"] == -(product["quantity"] + 9)
+            assert last["total_quantity"] == units_now + 9 + last["delta"]
     finally:
         if created_session_ids:
             async with async_session_factory() as db:

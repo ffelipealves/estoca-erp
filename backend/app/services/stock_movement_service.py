@@ -21,6 +21,10 @@ MAX_MOVEMENTS_PER_SESSION = 500
 @dataclass(frozen=True, slots=True)
 class BalancePoint:
     at: datetime
+    movement_id: UUID
+    type: StockMovementType
+    product_id: UUID
+    delta: int
     total_quantity: int
 
 
@@ -80,7 +84,17 @@ class StockMovementService:
 
     async def balance_timeline(self, session_id: UUID) -> list[BalancePoint]:
         rows = await self.movements.balance_timeline(session_id)
-        return [BalancePoint(at=at, total_quantity=total) for at, total in rows]
+        return [
+            BalancePoint(
+                at=at,
+                movement_id=movement_id,
+                type=movement_type,
+                product_id=product_id,
+                delta=delta,
+                total_quantity=total,
+            )
+            for movement_id, at, movement_type, product_id, delta, total in rows
+        ]
 
     @staticmethod
     def _as_utc(moment: datetime | None) -> datetime | None:
