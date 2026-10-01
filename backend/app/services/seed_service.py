@@ -30,11 +30,12 @@ HISTORY_DAYS = 14
 # antes da primeira movimentação do dia a dia.
 OPENING_STOCK_TIME = time(8, 0)
 
-CATEGORY_NAMES = (
-    "Ferramentas manuais",
-    "Elétrica",
-    "Hidráulica",
-    "Fixação",
+# (nome, descrição)
+CATEGORY_SEEDS = (
+    ("Ferramentas manuais", "Martelos, chaves, alicates e medição."),
+    ("Elétrica", "Cabos, disjuntores, tomadas e isolamento."),
+    ("Hidráulica", "Tubos, conexões, registros e vedação."),
+    ("Fixação", "Parafusos, buchas, pregos e arruelas."),
 )
 
 # Tabelas de dados: uma linha por registro lê melhor que a quebra do formatador.
@@ -134,7 +135,8 @@ class SeedService:
 
     async def _create_categories(self, session_id: UUID) -> list[Category]:
         categories = [
-            Category(session_id=session_id, name=name) for name in CATEGORY_NAMES
+            Category(session_id=session_id, name=name, description=description)
+            for name, description in CATEGORY_SEEDS
         ]
         return await self.categories.create_many(categories)
 

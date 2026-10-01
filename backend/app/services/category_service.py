@@ -22,17 +22,25 @@ class CategoryService:
             raise NotFoundError("Categoria não encontrada")
         return category
 
-    async def create(self, session_id: UUID, name: str) -> Category:
+    async def create(
+        self,
+        session_id: UUID,
+        name: str,
+        description: str | None = None,
+    ) -> Category:
         if await self.categories.get_by_name(session_id, name) is not None:
             raise ConflictError("Já existe uma categoria com este nome")
 
-        return await self.categories.create(Category(session_id=session_id, name=name))
+        return await self.categories.create(
+            Category(session_id=session_id, name=name, description=description)
+        )
 
     async def update(
         self,
         session_id: UUID,
         category_id: UUID,
         name: str,
+        description: str | None = None,
     ) -> Category:
         category = await self.get(session_id, category_id)
         category_with_name = await self.categories.get_by_name(session_id, name)
@@ -40,6 +48,7 @@ class CategoryService:
             raise ConflictError("Já existe uma categoria com este nome")
 
         category.name = name
+        category.description = description
         return await self.categories.save(category)
 
     async def delete(self, session_id: UUID, category_id: UUID) -> None:

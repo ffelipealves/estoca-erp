@@ -96,6 +96,7 @@ erDiagram
         uuid id PK
         uuid session_id FK
         varchar name
+        varchar description
         timestamptz created_at
         timestamptz updated_at
     }
@@ -128,7 +129,7 @@ Toda FK para `sessions.id` é `CASCADE`. `products.category_id` é `RESTRICT` (b
 
 - **`sessions`**: `id`, `created_at`, `last_activity_at` (índices nos dois — usados pela query de limpeza).
 - **`demo_users`**: `id`, `session_id`, `email`, `password_hash`, `role` (`admin`/`operador`), `full_name`. `UNIQUE(session_id, email)`.
-- **`categories`**: `id`, `session_id`, `name`, `created_at`, `updated_at`. `UNIQUE(session_id, name)`.
+- **`categories`**: `id`, `session_id`, `name`, `description` (nullable, até 120 caracteres — migration `0002`), `created_at`, `updated_at`. `UNIQUE(session_id, name)`.
 - **`products`**: `id`, `session_id`, `category_id` (FK RESTRICT), `name`, `sku`, `price` (numeric 10,2), `quantity` (default 0), `low_stock_threshold` (default 5 — já na migration inicial, é usado só no sprint 2 mas evita segunda migration), `created_at`, `updated_at`. `UNIQUE(session_id, sku)`.
 - **`stock_movements`**: `id`, `session_id`, `product_id` (FK CASCADE), `type` (`entrada`/`saida`/`ajuste`), `quantity`, `resulting_quantity`, `note` (nullable), `performed_by_user_id` (FK → demo_users, `SET NULL`), `created_at`. Índice composto `(session_id, product_id, created_at)`.
 
@@ -147,7 +148,7 @@ Prefixo `/api/v1`; limpeza interna em `/internal` (`include_in_schema=False`).
 - `POST /auth/login` — `{email, password}` contra `demo_users` da sessão atual → `{access_token, user}`. JWT: `{sub: user_id, session_id, role, exp: +2h}`.
 
 **Categorias / Produtos / Movimentações** (JWT obrigatório)
-- Categorias: `GET/POST /categories`, `GET/PUT/DELETE /categories/{id}` — mutação **admin only**; delete bloqueia (422) se houver produtos vinculados.
+- Categorias: `GET/POST /categories`, `GET/PUT/DELETE /categories/{id}` — mutação **admin only**; `description` é opcional (vazio vira `null`) e o `PUT` substitui o recurso inteiro, então omiti-la apaga a descrição; delete bloqueia (422) se houver produtos vinculados.
 - Produtos: `GET/POST /products` (filtros `category_id`, `search`, `low_stock`; teto de 50/sessão; sku único por sessão), `GET/PUT/DELETE /products/{id}` — mutação **admin only**.
 - Movimentações: `GET /stock-movements/balance-timeline` devolve o saldo total da sessão após cada evento — `LAG` particionado por produto extrai o delta de cada movimentação e a soma corrente reconstrói o total, em uma consulta só. É o único agregado servido pelo backend, e não conflita com a regra do dashboard: são dados de outra natureza, não os números do fechamento.
 - Movimentações: `GET /stock-movements` (paginado; filtros `product_id`, `type` e o período `date_from`/`date_to`, instantes ISO 8601 inclusivos comparados contra `created_at` em UTC — intervalo invertido devolve 422), `POST /stock-movements` — **admin e operador**; teto de 500/sessão.

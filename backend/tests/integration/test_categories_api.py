@@ -62,6 +62,10 @@ async def test_category_reads_require_auth_and_are_isolated_by_session() -> None
             assert detail.status_code == 200
             assert detail.json()["id"] == str(category_id)
             assert detail.json()["name"] == "Elétrica"
+            assert (
+                detail.json()["description"]
+                == "Cabos, disjuntores, tomadas e isolamento."
+            )
 
             cross_session = await client_b.get(
                 f"/api/v1/categories/{category_id}",
@@ -167,6 +171,75 @@ async def test_category_create_and_update_are_admin_only_and_session_scoped() ->
             )
             assert same_name_other_session.status_code == 201
             assert same_name_other_session.json()["name"] == "Bebidas geladas"
+    finally:
+        if created_session_ids:
+            async with async_session_factory() as db:
+                await db.execute(
+                    delete(Session).where(Session.id.in_(created_session_ids))
+                )
+                await db.commit()
+
+
+async def test_category_description_is_optional_and_replaced_on_update() -> None:
+    transport = ASGITransport(app=app)
+    created_session_ids: list[UUID] = []
+
+    try:
+        async with AsyncClient(transport=transport, base_url="http://test") as client:
+            session_id, admin_headers = await bootstrap_and_login(
+                client,
+                "admin@estoca.demo",
+            )
+            created_session_ids.append(session_id)
+
+            without_description = await client.post(
+                "/api/v1/categories",
+                headers=admin_headers,
+                json={"name": "Pintura"},
+            )
+            assert without_description.status_code == 201
+            assert without_description.json()["description"] is None
+
+            blank_description = await client.post(
+                "/api/v1/categories",
+                headers=admin_headers,
+                json={"name": "Jardinagem", "description": "   "},
+            )
+            assert blank_description.status_code == 201
+            assert blank_description.json()["description"] is None
+
+            too_long = await client.post(
+                "/api/v1/categories",
+                headers=admin_headers,
+                json={"name": "Vedação", "description": "x" * 121},
+            )
+            assert too_long.status_code == 422
+
+            created = await client.post(
+                "/api/v1/categories",
+                headers=admin_headers,
+                json={"name": "Adesivos", "description": "  Colas e selantes.  "},
+            )
+            assert created.status_code == 201
+            assert created.json()["description"] == "Colas e selantes."
+            category_id = created.json()["id"]
+
+            described = await client.put(
+                f"/api/v1/categories/{category_id}",
+                headers=admin_headers,
+                json={"name": "Adesivos", "description": "Colas, selantes e fitas."},
+            )
+            assert described.status_code == 200
+            assert described.json()["description"] == "Colas, selantes e fitas."
+
+            # PUT substitui o recurso inteiro: sem descrição, ela é apagada.
+            cleared = await client.put(
+                f"/api/v1/categories/{category_id}",
+                headers=admin_headers,
+                json={"name": "Adesivos"},
+            )
+            assert cleared.status_code == 200
+            assert cleared.json()["description"] is None
     finally:
         if created_session_ids:
             async with async_session_factory() as db:

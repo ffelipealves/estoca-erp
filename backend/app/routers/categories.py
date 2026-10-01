@@ -22,6 +22,7 @@ async def create_category(
     category = await CategoryService(db).create(
         admin_user.session_id,
         payload.name,
+        payload.description,
     )
     return CategoryResponse.model_validate(category)
 
@@ -56,6 +57,7 @@ async def update_category(
         admin_user.session_id,
         category_id,
         payload.name,
+        payload.description,
     )
     return CategoryResponse.model_validate(category)
 
