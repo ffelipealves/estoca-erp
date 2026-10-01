@@ -1,7 +1,6 @@
 "use client"
 
 import * as React from "react"
-import { useRouter } from "next/navigation"
 import { toast } from "sonner"
 import { LockSimpleIcon } from "@phosphor-icons/react"
 import type { MovementPreset } from "@/lib/estoca/store"
@@ -17,6 +16,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
+import { MovementDialog } from "./movement-dialog"
 
 interface OverlayApi {
   openMovement(preset?: MovementPreset): void
@@ -47,18 +47,21 @@ const LOCK_COPY: Partial<Record<Permission, { title: string; body: string }>> = 
 }
 
 export function OverlaysProvider({ children }: { children: React.ReactNode }) {
+  const [movement, setMovement] = React.useState<{ open: boolean; preset: MovementPreset; key: number }>({
+    open: false,
+    preset: {},
+    key: 0,
+  })
   const [locked, setLocked] = React.useState<Permission | null>(null)
   const { login } = useActions()
-  const router = useRouter()
 
   const api = React.useMemo<OverlayApi>(
     () => ({
-      // Provisório: até o modal de movimentação (etapa F4), leva ao histórico,
-      // onde o registro anterior ao redesign ainda está disponível.
-      openMovement: () => router.push("/movimentacoes"),
+      // A fresh key per open: closing always discards the draft.
+      openMovement: (preset = {}) => setMovement((m) => ({ open: true, preset, key: m.key + 1 })),
       explainLocked: (permission) => setLocked(permission),
     }),
-    [router],
+    [],
   )
 
   const copy = locked ? LOCK_COPY[locked] : null
@@ -66,6 +69,12 @@ export function OverlaysProvider({ children }: { children: React.ReactNode }) {
   return (
     <OverlayContext.Provider value={api}>
       {children}
+      <MovementDialog
+        key={movement.key}
+        open={movement.open}
+        preset={movement.preset}
+        onOpenChange={(open) => setMovement((m) => ({ ...m, open }))}
+      />
       <Dialog open={!!locked} onOpenChange={(open) => !open && setLocked(null)}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
