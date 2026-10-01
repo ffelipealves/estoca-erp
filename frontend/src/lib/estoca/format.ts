@@ -62,15 +62,10 @@ export function parseBRL(input: string): number | null {
   return Number.isFinite(value) ? value : null
 }
 
-/** Price as the field shows it while editing: 49.9 -> "49,90". */
-export function formatPriceInput(value: number) {
-  return value.toFixed(2).replace(".", ",")
-}
-
 export function normalize(text: string) {
   return text
     .normalize("NFD")
-    .replace(/[̀-ͯ]/g, "")
+    .replace(/[\u0300-\u036f]/g, "")
     .toLowerCase()
     .trim()
 }

@@ -7,7 +7,9 @@ import {
   bootstrapSession,
   checkHealth,
   clearStoredAuth,
+  createProduct as requestCreateProduct,
   createStockMovement,
+  deleteProduct as requestDeleteProduct,
   clearStoredSessionId,
   getSessionInfo,
   getStoredAuth,
@@ -18,12 +20,13 @@ import {
   storeAuth,
   storeSessionId,
   subscribeApi,
+  updateProduct as requestUpdateProduct,
   type AuthUser,
   type SessionInfo,
 } from "@/lib/api"
 import { DEMO_PASSWORD, demoUserFor } from "@/lib/demo-users"
-import { toCategory, toMovement, toProduct } from "./adapters"
-import type { Category, Movement, MovementDraft, MovementType, Product, Role } from "./types"
+import { toCategory, toMovement, toPriceString, toProduct } from "./adapters"
+import type { Category, Movement, MovementDraft, MovementType, Product, ProductDraft, Role } from "./types"
 
 /** How long the free API tier gets to wake up and prepare the sandbox. */
 const BOOT_TIMEOUT_MS = 90_000
@@ -79,6 +82,11 @@ export interface EstocaActions {
   startNewSandbox(): void
   refreshCatalog(): void
   registerMovement(draft: MovementDraft): Promise<WriteResult<Movement>>
+  /** Resolves with the new product's id. */
+  createProduct(draft: ProductDraft): Promise<WriteResult<string>>
+  updateProduct(id: string, draft: Omit<ProductDraft, "initialQuantity">): Promise<WriteResult>
+  /** Deletes the product and, with it, its movement history. */
+  deleteProduct(id: string): Promise<WriteResult>
 }
 
 interface BootInfo {
@@ -128,10 +136,20 @@ export function describeError(error: unknown, fallback: string) {
   return fallback
 }
 
+/** The API answers 409 for a taken SKU and 404 for a category that is gone. */
+function productWriteError(error: unknown, fallback: string): WriteResult<never> {
+  if (error instanceof ApiError && error.status === 409) return { ok: false, field: "sku", message: error.message }
+  if (error instanceof ApiError && error.status === 404) {
+    return { ok: false, field: "categoryId", message: error.message }
+  }
+  return { ok: false, message: describeError(error, fallback) }
+}
+
 const BootContext = React.createContext<BootInfo>({ status: "booting", mode: "frio", step: 0, error: null })
 const DataContext = React.createContext<EstocaState | null>(null)
 const ActionsContext = React.createContext<EstocaActions | null>(null)
-const FlashContext = React.createContext<string | null>(null)
+type Flash = { movementId: string; productId: string }
+const FlashContext = React.createContext<Flash | null>(null)
 
 export function EstocaProvider({ children }: { children: React.ReactNode }) {
   const [boot, setBoot] = React.useState<BootInfo>({ status: "booting", mode: "frio", step: 0, error: null })
@@ -139,7 +157,7 @@ export function EstocaProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = React.useState<AuthUser | null>(null)
   const [catalog, setCatalog] = React.useState<CatalogData>(EMPTY_CATALOG)
   const [movementsVersion, setMovementsVersion] = React.useState(0)
-  const [flashId, setFlashId] = React.useState<string | null>(null)
+  const [flash, setFlash] = React.useState<Flash | null>(null)
 
   const bootStarted = React.useRef(false)
   /** Server clock minus client clock, so deadlines follow the API's time. */
@@ -324,11 +342,58 @@ export function EstocaProvider({ children }: { children: React.ReactNode }) {
             ),
           }))
           setMovementsVersion((v) => v + 1)
-          setFlashId(movement.id)
-          setTimeout(() => setFlashId((id) => (id === movement.id ? null : id)), FLASH_MS)
+          setFlash({ movementId: movement.id, productId: movement.productId })
+          setTimeout(() => setFlash((f) => (f?.movementId === movement.id ? null : f)), FLASH_MS)
           return { ok: true, value: movement }
         } catch (error) {
           return { ok: false, message: describeError(error, "Não foi possível registrar a movimentação.") }
+        }
+      },
+      async createProduct(draft) {
+        try {
+          const created = toProduct(
+            await requestCreateProduct({
+              category_id: draft.categoryId,
+              name: draft.name.trim(),
+              sku: draft.sku.trim().toUpperCase(),
+              price: toPriceString(draft.price),
+              low_stock_threshold: draft.lowStockLimit,
+              initial_quantity: draft.initialQuantity,
+            }),
+          )
+          setCatalog((c) => ({ ...c, products: [...c.products, created] }))
+          // The opening quantity is a movement in the history.
+          if (draft.initialQuantity > 0) setMovementsVersion((v) => v + 1)
+          return { ok: true, value: created.id }
+        } catch (error) {
+          return productWriteError(error, "Não foi possível cadastrar o produto.")
+        }
+      },
+      async updateProduct(id, draft) {
+        try {
+          const updated = toProduct(
+            await requestUpdateProduct(id, {
+              category_id: draft.categoryId,
+              name: draft.name.trim(),
+              sku: draft.sku.trim().toUpperCase(),
+              price: toPriceString(draft.price),
+              low_stock_threshold: draft.lowStockLimit,
+            }),
+          )
+          setCatalog((c) => ({ ...c, products: c.products.map((p) => (p.id === id ? updated : p)) }))
+          return { ok: true, value: undefined }
+        } catch (error) {
+          return productWriteError(error, "Não foi possível salvar o produto.")
+        }
+      },
+      async deleteProduct(id) {
+        try {
+          await requestDeleteProduct(id)
+          setCatalog((c) => ({ ...c, products: c.products.filter((p) => p.id !== id) }))
+          setMovementsVersion((v) => v + 1)
+          return { ok: true, value: undefined }
+        } catch (error) {
+          return { ok: false, message: describeError(error, "Não foi possível excluir o produto.") }
         }
       },
     }),
@@ -356,7 +421,7 @@ export function EstocaProvider({ children }: { children: React.ReactNode }) {
     <BootContext.Provider value={boot}>
       <ActionsContext.Provider value={actions}>
         <DataContext.Provider value={state}>
-          <FlashContext.Provider value={flashId}>{children}</FlashContext.Provider>
+          <FlashContext.Provider value={flash}>{children}</FlashContext.Provider>
         </DataContext.Provider>
       </ActionsContext.Provider>
     </BootContext.Provider>
@@ -386,7 +451,12 @@ export function useActions() {
 
 /** The movement that just landed, for its one good-read flash. */
 export function useFlashId() {
-  return React.useContext(FlashContext)
+  return React.useContext(FlashContext)?.movementId ?? null
+}
+
+/** The product that movement touched, so its catalog row can flash too. */
+export function useFlashProductId() {
+  return React.useContext(FlashContext)?.productId ?? null
 }
 
 export function useRole(): Role {

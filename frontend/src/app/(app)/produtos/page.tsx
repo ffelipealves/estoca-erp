@@ -1,9 +1,14 @@
 import type { Metadata } from "next"
-import { ProductList } from "@/components/products/ProductList"
+import { Suspense } from "react"
+import { ProdutosView } from "@/components/estoca/produtos/produtos-view"
 
 export const metadata: Metadata = { title: "Produtos" }
 
-// Provisório: a tela anterior ao redesign, até a etapa que a substitui.
-export default function Page() {
-  return <ProductList />
+export default function ProdutosPage() {
+  // Filters and sorting live in the URL, read on the client.
+  return (
+    <Suspense>
+      <ProdutosView />
+    </Suspense>
+  )
 }
