@@ -204,17 +204,3 @@
 html [data-sonner-toaster][data-sonner-toaster] {
   font-family: var(--font-sans);
 }
-
-/* Legado: apoio às telas anteriores ao redesign enquanto convivem com as novas.
-   Sai junto com elas (etapa F10 do plano). */
-body:has(dialog[open]) {
-  overflow: hidden;
-}
-
-.font-display {
-  font-family: var(--font-display), Impact, sans-serif;
-}
-
-.font-mono {
-  font-family: var(--font-mono), Consolas, monospace;
-}

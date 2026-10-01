@@ -1,129 +1,129 @@
 const API_BASE_URL = (
   process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000"
-).replace(/\/$/, "");
+).replace(/\/$/, "")
 
-const SESSION_STORAGE_KEY = "estoca.session_id";
-const AUTH_STORAGE_KEY = "estoca.auth";
+const SESSION_STORAGE_KEY = "estoca.session_id"
+const AUTH_STORAGE_KEY = "estoca.auth"
 
 interface ApiErrorPayload {
-  code?: string;
-  detail?: string;
+  code?: string
+  detail?: string
 }
 
 export interface SessionBootstrapResponse {
-  session_id: string;
-  expires_at: string;
+  session_id: string
+  expires_at: string
 }
 
 export interface SessionInfo extends SessionBootstrapResponse {
-  created_at: string;
-  last_activity_at: string;
-  ttl_seconds: number;
+  created_at: string
+  last_activity_at: string
+  ttl_seconds: number
   /** Janela de inatividade: cada requisição empurra o prazo até este tanto. */
-  inactivity_seconds: number;
+  inactivity_seconds: number
   /** Limite absoluto, que nenhuma atividade estende. */
-  max_expires_at: string;
+  max_expires_at: string
 }
 
 export interface SessionResetResult {
-  session_id: string;
-  categories_seeded: number;
-  products_seeded: number;
+  session_id: string
+  categories_seeded: number
+  products_seeded: number
 }
 
-export type UserRole = "admin" | "operador";
+export type UserRole = "admin" | "operador"
 
 export interface AuthUser {
-  id: string;
-  email: string;
-  role: UserRole;
-  full_name: string;
+  id: string
+  email: string
+  role: UserRole
+  full_name: string
 }
 
 export interface LoginResponse {
-  access_token: string;
-  token_type: "bearer";
-  user: AuthUser;
+  access_token: string
+  token_type: "bearer"
+  user: AuthUser
 }
 
 export interface AuthSession {
-  accessToken: string;
-  sessionId: string;
-  user: AuthUser;
+  accessToken: string
+  sessionId: string
+  user: AuthUser
 }
 
 export interface Category {
-  id: string;
-  name: string;
-  description: string | null;
-  created_at: string;
-  updated_at: string;
+  id: string
+  name: string
+  description: string | null
+  created_at: string
+  updated_at: string
 }
 
 export interface Product {
-  id: string;
-  category_id: string;
-  name: string;
-  sku: string;
-  price: string;
-  quantity: number;
-  low_stock_threshold: number;
-  created_at: string;
-  updated_at: string;
+  id: string
+  category_id: string
+  name: string
+  sku: string
+  price: string
+  quantity: number
+  low_stock_threshold: number
+  created_at: string
+  updated_at: string
 }
 
 export interface ProductCreateInput {
-  category_id: string;
-  name: string;
-  sku: string;
-  price: string;
-  initial_quantity: number;
-  low_stock_threshold: number;
+  category_id: string
+  name: string
+  sku: string
+  price: string
+  initial_quantity: number
+  low_stock_threshold: number
 }
 
-export type ProductUpdateInput = Omit<ProductCreateInput, "initial_quantity">;
+export type ProductUpdateInput = Omit<ProductCreateInput, "initial_quantity">
 
-export type StockMovementType = "entrada" | "saida" | "ajuste";
+export type StockMovementType = "entrada" | "saida" | "ajuste"
 
 export interface StockMovement {
-  id: string;
-  product_id: string;
-  performed_by_user_id: string | null;
-  type: StockMovementType;
-  quantity: number;
-  previous_quantity: number;
-  resulting_quantity: number;
-  note: string | null;
-  created_at: string;
+  id: string
+  product_id: string
+  performed_by_user_id: string | null
+  type: StockMovementType
+  quantity: number
+  previous_quantity: number
+  resulting_quantity: number
+  note: string | null
+  created_at: string
 }
 
 export interface StockMovementPage {
-  items: StockMovement[];
-  page: number;
-  page_size: number;
-  total: number;
-  pages: number;
+  items: StockMovement[]
+  page: number
+  page_size: number
+  total: number
+  pages: number
 }
 
 export interface StockBalancePoint {
-  at: string;
-  movement_id: string;
-  type: StockMovementType;
-  product_id: string;
+  at: string
+  movement_id: string
+  type: StockMovementType
+  product_id: string
   /** Quanto essa movimentação moveu o estoque total. */
-  delta: number;
-  total_quantity: number;
+  delta: number
+  total_quantity: number
 }
 
 export interface StockBalanceTimeline {
-  points: StockBalancePoint[];
+  points: StockBalancePoint[]
 }
 
 export interface StockMovementCreateInput {
-  product_id: string;
-  type: StockMovementType;
-  quantity: number;
-  note?: string;
+  product_id: string
+  type: StockMovementType
+  quantity: number
+  note?: string
 }
 
 export class ApiError extends Error {
@@ -132,38 +132,38 @@ export class ApiError extends Error {
     public readonly status: number,
     public readonly code?: string,
   ) {
-    super(message);
-    this.name = "ApiError";
+    super(message)
+    this.name = "ApiError"
   }
 }
 
 export function getStoredSessionId(): string | null {
   if (typeof window === "undefined") {
-    return null;
+    return null
   }
 
-  return window.sessionStorage.getItem(SESSION_STORAGE_KEY);
+  return window.sessionStorage.getItem(SESSION_STORAGE_KEY)
 }
 
 export function storeSessionId(sessionId: string): void {
   if (typeof window !== "undefined") {
-    window.sessionStorage.setItem(SESSION_STORAGE_KEY, sessionId);
+    window.sessionStorage.setItem(SESSION_STORAGE_KEY, sessionId)
   }
 }
 
 export function getStoredAuth(): AuthSession | null {
   if (typeof window === "undefined") {
-    return null;
+    return null
   }
 
-  const stored = window.sessionStorage.getItem(AUTH_STORAGE_KEY);
+  const stored = window.sessionStorage.getItem(AUTH_STORAGE_KEY)
   if (!stored) {
-    return null;
+    return null
   }
 
   try {
-    const auth = JSON.parse(stored) as Partial<AuthSession>;
-    const user = auth.user;
+    const auth = JSON.parse(stored) as Partial<AuthSession>
+    const user = auth.user
 
     if (
       typeof auth.accessToken !== "string" ||
@@ -174,49 +174,49 @@ export function getStoredAuth(): AuthSession | null {
       typeof user.full_name !== "string" ||
       (user.role !== "admin" && user.role !== "operador")
     ) {
-      throw new Error("Invalid stored auth");
+      throw new Error("Invalid stored auth")
     }
 
-    return auth as AuthSession;
+    return auth as AuthSession
   } catch {
-    window.sessionStorage.removeItem(AUTH_STORAGE_KEY);
-    return null;
+    window.sessionStorage.removeItem(AUTH_STORAGE_KEY)
+    return null
   }
 }
 
 export function storeAuth(auth: AuthSession): void {
   if (typeof window !== "undefined") {
-    window.sessionStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(auth));
+    window.sessionStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(auth))
   }
 }
 
 export function clearStoredAuth(): void {
   if (typeof window !== "undefined") {
-    window.sessionStorage.removeItem(AUTH_STORAGE_KEY);
+    window.sessionStorage.removeItem(AUTH_STORAGE_KEY)
   }
 }
 
 interface ApiListener {
   /** Toda resposta 2xx: a API acabou de renovar a atividade da sessão. */
-  onSuccess?: () => void;
-  onUnauthorized?: (error: ApiError, path: string) => void;
+  onSuccess?: () => void
+  onUnauthorized?: (error: ApiError, path: string) => void
 }
 
-const listeners = new Set<ApiListener>();
+const listeners = new Set<ApiListener>()
 
 /** Avisa quem acompanha o relógio e a validade da sessão. */
 export function subscribeApi(listener: ApiListener): () => void {
-  listeners.add(listener);
+  listeners.add(listener)
   return () => {
-    listeners.delete(listener);
-  };
+    listeners.delete(listener)
+  }
 }
 
 async function readErrorPayload(response: Response): Promise<ApiErrorPayload> {
   try {
-    return (await response.json()) as ApiErrorPayload;
+    return (await response.json()) as ApiErrorPayload
   } catch {
-    return {};
+    return {}
   }
 }
 
@@ -224,20 +224,20 @@ export async function apiRequest<T>(
   path: `/${string}`,
   init: RequestInit = {},
 ): Promise<T> {
-  const headers = new Headers(init.headers);
-  const sessionId = getStoredSessionId();
-  const auth = getStoredAuth();
+  const headers = new Headers(init.headers)
+  const sessionId = getStoredSessionId()
+  const auth = getStoredAuth()
 
   if (sessionId && !headers.has("X-Session-Id")) {
-    headers.set("X-Session-Id", sessionId);
+    headers.set("X-Session-Id", sessionId)
   }
 
   if (auth?.sessionId === sessionId && !headers.has("Authorization")) {
-    headers.set("Authorization", `Bearer ${auth.accessToken}`);
+    headers.set("Authorization", `Bearer ${auth.accessToken}`)
   }
 
   if (init.body && !headers.has("Content-Type")) {
-    headers.set("Content-Type", "application/json");
+    headers.set("Content-Type", "application/json")
   }
 
   const response = await fetch(`${API_BASE_URL}${path}`, {
@@ -245,43 +245,43 @@ export async function apiRequest<T>(
     cache: "no-store",
     credentials: "include",
     headers,
-  });
+  })
 
   if (!response.ok) {
-    const payload = await readErrorPayload(response);
+    const payload = await readErrorPayload(response)
     const error = new ApiError(
       payload.detail ?? `A API respondeu com status ${response.status}.`,
       response.status,
       payload.code,
-    );
+    )
     if (response.status === 401) {
-      listeners.forEach((listener) => listener.onUnauthorized?.(error, path));
+      listeners.forEach((listener) => listener.onUnauthorized?.(error, path))
     }
-    throw error;
+    throw error
   }
 
-  listeners.forEach((listener) => listener.onSuccess?.());
+  listeners.forEach((listener) => listener.onSuccess?.())
 
   if (response.status === 204) {
-    return undefined as T;
+    return undefined as T
   }
 
   try {
-    return (await response.json()) as T;
+    return (await response.json()) as T
   } catch {
-    throw new ApiError("A API retornou uma resposta inválida.", response.status);
+    throw new ApiError("A API retornou uma resposta inválida.", response.status)
   }
 }
 
 export function clearStoredSessionId(): void {
   if (typeof window !== "undefined") {
-    window.sessionStorage.removeItem(SESSION_STORAGE_KEY);
+    window.sessionStorage.removeItem(SESSION_STORAGE_KEY)
   }
 }
 
 /** Acorda o servidor gratuito antes de criar a sandbox. Não toca na sessão. */
 export function checkHealth(signal?: AbortSignal): Promise<{ status: string }> {
-  return apiRequest<{ status: string }>("/healthz", { signal });
+  return apiRequest<{ status: string }>("/healthz", { signal })
 }
 
 export function bootstrapSession(
@@ -290,17 +290,17 @@ export function bootstrapSession(
   return apiRequest<SessionBootstrapResponse>("/api/v1/sessions/bootstrap", {
     method: "POST",
     signal,
-  });
+  })
 }
 
 export function getSessionInfo(signal?: AbortSignal): Promise<SessionInfo> {
-  return apiRequest<SessionInfo>("/api/v1/sessions/me", { signal });
+  return apiRequest<SessionInfo>("/api/v1/sessions/me", { signal })
 }
 
 export function resetSession(): Promise<SessionResetResult> {
   return apiRequest<SessionResetResult>("/api/v1/sessions/me/reset", {
     method: "POST",
-  });
+  })
 }
 
 export function login(
@@ -310,11 +310,11 @@ export function login(
   return apiRequest<LoginResponse>("/api/v1/auth/login", {
     body: JSON.stringify({ email, password }),
     method: "POST",
-  });
+  })
 }
 
 export function listCategories(signal?: AbortSignal): Promise<Category[]> {
-  return apiRequest<Category[]>("/api/v1/categories", { signal });
+  return apiRequest<Category[]>("/api/v1/categories", { signal })
 }
 
 export function createCategory(
@@ -324,7 +324,7 @@ export function createCategory(
   return apiRequest<Category>("/api/v1/categories", {
     body: JSON.stringify({ name, description }),
     method: "POST",
-  });
+  })
 }
 
 /** PUT substitui a categoria inteira: sem `description`, a API a apaga. */
@@ -336,24 +336,24 @@ export function updateCategory(
   return apiRequest<Category>(`/api/v1/categories/${categoryId}`, {
     body: JSON.stringify({ name, description }),
     method: "PUT",
-  });
+  })
 }
 
 export function deleteCategory(categoryId: string): Promise<void> {
   return apiRequest<void>(`/api/v1/categories/${categoryId}`, {
     method: "DELETE",
-  });
+  })
 }
 
 export function listProducts(signal?: AbortSignal): Promise<Product[]> {
-  return apiRequest<Product[]>("/api/v1/products", { signal });
+  return apiRequest<Product[]>("/api/v1/products", { signal })
 }
 
 export function createProduct(payload: ProductCreateInput): Promise<Product> {
   return apiRequest<Product>("/api/v1/products", {
     body: JSON.stringify(payload),
     method: "POST",
-  });
+  })
 }
 
 export function updateProduct(
@@ -363,21 +363,21 @@ export function updateProduct(
   return apiRequest<Product>(`/api/v1/products/${productId}`, {
     body: JSON.stringify(payload),
     method: "PUT",
-  });
+  })
 }
 
 export function deleteProduct(productId: string): Promise<void> {
   return apiRequest<void>(`/api/v1/products/${productId}`, {
     method: "DELETE",
-  });
+  })
 }
 
 export interface StockMovementFilters {
   /** Instante ISO 8601 inclusivo — a API compara contra `created_at` em UTC. */
-  dateFrom?: string;
-  dateTo?: string;
-  productId?: string;
-  type?: StockMovementType;
+  dateFrom?: string
+  dateTo?: string
+  productId?: string
+  type?: StockMovementType
 }
 
 export function listStockMovements(
@@ -389,16 +389,16 @@ export function listStockMovements(
   const query = new URLSearchParams({
     page: String(page),
     page_size: String(pageSize),
-  });
-  if (filters.productId) query.set("product_id", filters.productId);
-  if (filters.type) query.set("type", filters.type);
-  if (filters.dateFrom) query.set("date_from", filters.dateFrom);
-  if (filters.dateTo) query.set("date_to", filters.dateTo);
+  })
+  if (filters.productId) query.set("product_id", filters.productId)
+  if (filters.type) query.set("type", filters.type)
+  if (filters.dateFrom) query.set("date_from", filters.dateFrom)
+  if (filters.dateTo) query.set("date_to", filters.dateTo)
 
   return apiRequest<StockMovementPage>(
     `/api/v1/stock-movements?${query.toString()}`,
     { signal },
-  );
+  )
 }
 
 export function getBalanceTimeline(
@@ -407,7 +407,7 @@ export function getBalanceTimeline(
   return apiRequest<StockBalanceTimeline>(
     "/api/v1/stock-movements/balance-timeline",
     { signal },
-  );
+  )
 }
 
 export function createStockMovement(
@@ -416,5 +416,5 @@ export function createStockMovement(
   return apiRequest<StockMovement>("/api/v1/stock-movements", {
     body: JSON.stringify(payload),
     method: "POST",
-  });
+  })
 }

@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next"
-import { Archivo, Barlow_Condensed, IBM_Plex_Mono, IBM_Plex_Sans } from "next/font/google"
+import { Archivo } from "next/font/google"
 
 import { BootGate } from "@/components/estoca/boot-gate"
 import { Toaster } from "@/components/ui/sonner"
@@ -13,24 +13,6 @@ const archivo = Archivo({
   subsets: ["latin"],
   axes: ["wdth"],
   display: "swap",
-})
-
-// Legado: fontes das telas anteriores ao redesign. Saem com elas (etapa F10).
-const legacyBodyFont = IBM_Plex_Sans({
-  subsets: ["latin"],
-  variable: "--font-body",
-})
-
-const legacyDisplayFont = Barlow_Condensed({
-  subsets: ["latin"],
-  variable: "--font-display",
-  weight: ["600", "700"],
-})
-
-const legacyMonoFont = IBM_Plex_Mono({
-  subsets: ["latin"],
-  variable: "--font-mono",
-  weight: ["500", "600"],
 })
 
 export const metadata: Metadata = {
@@ -47,10 +29,7 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html
-      lang="pt-BR"
-      className={`${archivo.variable} ${legacyBodyFont.variable} ${legacyDisplayFont.variable} ${legacyMonoFont.variable} h-full antialiased`}
-    >
+    <html lang="pt-BR" className={`${archivo.variable} h-full antialiased`}>
       <body className="min-h-full">
         <EstocaProvider>
           <BootGate>{children}</BootGate>
