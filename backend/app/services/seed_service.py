@@ -26,9 +26,6 @@ SEED_TIMEZONE = timezone(timedelta(hours=-3), "BRT")
 # cai na véspera, então nunca compete com as que o visitante registrar.
 HISTORY_DAYS = 14
 
-# O estoque inicial de cada produto entra no primeiro dia, um minuto após o outro,
-# antes da primeira movimentação do dia a dia.
-OPENING_STOCK_TIME = time(8, 0)
 
 # (nome, descrição)
 CATEGORY_SEEDS = (
@@ -177,29 +174,28 @@ class SeedService:
             raise RuntimeError("Usuários demo ausentes durante a criação do seed")
 
         products_by_sku = {product.sku: product for product in products}
+        # O estoque inicial de todos os produtos é um só instante: a abertura do
+        # histórico. A série de saldo o desenha como um único ponto de partida.
         start = history_start(datetime.now(UTC))
-        opening_at = datetime.combine(
-            start.date(), OPENING_STOCK_TIME, tzinfo=start.tzinfo
-        )
         # Cada movimentação fabricada e o carimbo que ela recebe: primeiro o estoque
         # inicial de cada produto, depois as movimentações do dia a dia.
         history: list[tuple[StockMovement, datetime]] = []
 
-        for index, (
+        for (
             _category_name,
             _name,
             sku,
             _price,
             _threshold,
             initial_quantity,
-        ) in enumerate(PRODUCT_SEEDS):
+        ) in PRODUCT_SEEDS:
             movement = await self.stock_movements.record_initial_stock(
                 session_id=session_id,
                 product=products_by_sku[sku],
                 performed_by_user_id=admin.id,
                 quantity=initial_quantity,
             )
-            history.append((movement, opening_at + timedelta(minutes=index)))
+            history.append((movement, start))
 
         for day, hour, minute, sku, movement_type, quantity, note in MOVEMENT_SEEDS:
             # Ajuste é contagem física, feita pelo admin; o operador movimenta.

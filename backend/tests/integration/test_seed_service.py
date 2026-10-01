@@ -67,15 +67,22 @@ async def test_seed_history_follows_the_demo_calendar() -> None:
         assert total == 39
         stamps = sorted(movement.created_at for movement in movements)
 
-        # Todo carimbo é distinto: é o que dá forma à linha do tempo.
-        assert len(set(stamps)) == total
+        # O estoque inicial é um instante só; dali em diante, cada movimentação
+        # tem o seu carimbo, e nenhum produto tem dois eventos no mesmo instante.
+        initial_stamps = {
+            m.created_at for m in movements if m.note == "Estoque inicial"
+        }
+        assert len(initial_stamps) == 1
+        assert len(set(stamps)) == total - 15
+        per_product = [(m.product_id, m.created_at) for m in movements]
+        assert len(set(per_product)) == total
 
         # A janela vai da meia-noite de 14 dias atrás até a véspera, no horário
         # de Brasília: nada fica no futuro nem no dia de hoje.
         now = datetime.now(UTC)
         start = history_start(now)
         today = now.astimezone(SEED_TIMEZONE).date()
-        assert stamps[0] >= start
+        assert stamps[0] == start
         assert stamps[-1] < now
         assert stamps[-1].astimezone(SEED_TIMEZONE).date() < today
 

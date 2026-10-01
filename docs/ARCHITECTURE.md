@@ -199,8 +199,10 @@ inicial: um depósito de material de construção com 4 categorias (Ferramentas
 manuais, Elétrica, Hidráulica e Fixação), 16 produtos, 2 usuários demo e 39
 movimentações — o estoque inicial de cada produto mais 23 entradas, saídas e
 ajustes do dia a dia. O histórico começa à meia-noite de 14 dias atrás, no
-horário de Brasília: o estoque inicial entra às 8h do primeiro dia, um produto
-por minuto, e cada movimentação tem dia e hora fixos, a última na véspera. O
+horário de Brasília: o estoque inicial de todos os produtos é um só instante, a
+abertura do histórico, e cada movimentação tem dia e hora fixos, a última na
+véspera. A série de saldo desenha o estoque inicial como um único ponto de
+partida. O
 seed inteiro roda em uma transação e `created_at` usa
 `server_default=func.now()` — que no Postgres é o horário da *transação* —,
 então sem essa retrodatação explícita as movimentações nasceriam com o mesmo

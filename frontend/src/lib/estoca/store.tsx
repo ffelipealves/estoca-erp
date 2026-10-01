@@ -119,7 +119,8 @@ function touch(sandbox: Sandbox, serverNow: number): Sandbox {
   }
 }
 
-function describe(error: unknown, fallback: string) {
+/** Human text for a failed request: the API's own message when there is one. */
+export function describeError(error: unknown, fallback: string) {
   if (error instanceof ApiError) return error.message
   if (error instanceof DOMException && (error.name === "TimeoutError" || error.name === "AbortError")) {
     return "A API demorou mais que o esperado para responder."
@@ -163,7 +164,7 @@ export function EstocaProvider({ children }: { children: React.ReactNode }) {
       setCatalog((c) => ({
         ...c,
         status: "error",
-        error: describe(error, "Não foi possível carregar o catálogo."),
+        error: describeError(error, "Não foi possível carregar o catálogo."),
       }))
     }
   }, [])
@@ -204,7 +205,7 @@ export function EstocaProvider({ children }: { children: React.ReactNode }) {
         setBoot((b) => ({
           ...b,
           status: "error",
-          error: describe(error, "Não foi possível preparar a demonstração agora."),
+          error: describeError(error, "Não foi possível preparar a demonstração agora."),
         }))
       }
     },
@@ -275,7 +276,7 @@ export function EstocaProvider({ children }: { children: React.ReactNode }) {
         if (error instanceof ApiError && error.status === 401) {
           return { ok: false, field: "credentials", message: error.message }
         }
-        return { ok: false, message: describe(error, "Não foi possível entrar agora.") }
+        return { ok: false, message: describeError(error, "Não foi possível entrar agora.") }
       }
     },
     [loadCatalog],
@@ -327,7 +328,7 @@ export function EstocaProvider({ children }: { children: React.ReactNode }) {
           setTimeout(() => setFlashId((id) => (id === movement.id ? null : id)), FLASH_MS)
           return { ok: true, value: movement }
         } catch (error) {
-          return { ok: false, message: describe(error, "Não foi possível registrar a movimentação.") }
+          return { ok: false, message: describeError(error, "Não foi possível registrar a movimentação.") }
         }
       },
     }),
