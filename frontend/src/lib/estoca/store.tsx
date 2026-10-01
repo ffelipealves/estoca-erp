@@ -22,7 +22,7 @@ import {
 } from "@/lib/api"
 import { DEMO_PASSWORD, demoUserFor } from "@/lib/demo-users"
 import { toCategory, toProduct } from "./adapters"
-import type { Category, Product, Role } from "./types"
+import type { Category, MovementType, Product, Role } from "./types"
 
 /** How long the free API tier gets to wake up and prepare the sandbox. */
 const BOOT_TIMEOUT_MS = 90_000
@@ -349,3 +349,6 @@ export function useActions() {
 export function useRole(): Role {
   return useEstoca().role ?? "operador"
 }
+
+/** Opens the movement dialog already pointed at a product and/or operation. */
+export type MovementPreset = { productId?: string; type?: MovementType }

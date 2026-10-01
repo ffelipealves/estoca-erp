@@ -2,8 +2,8 @@
 
 import { useEffect } from "react"
 import { usePathname, useRouter } from "next/navigation"
+import { AppShell } from "@/components/estoca/shell/app-shell"
 import { useEstoca } from "@/lib/estoca/store"
-import { InterimShell } from "./interim-shell"
 
 /** Every area needs a login; a deep link comes back here after `/entrar`. */
 export default function AppLayout({ children }: { children: React.ReactNode }) {
@@ -16,5 +16,5 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   }, [pathname, role, router])
 
   if (!role) return null
-  return <InterimShell>{children}</InterimShell>
+  return <AppShell role={role}>{children}</AppShell>
 }
