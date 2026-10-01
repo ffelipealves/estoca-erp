@@ -1,9 +1,14 @@
 import type { Metadata } from "next"
-import { MovementList } from "@/components/movements/MovementList"
+import { Suspense } from "react"
+import { MovimentacoesView } from "@/components/estoca/movimentacoes/movimentacoes-view"
 
 export const metadata: Metadata = { title: "Movimentações" }
 
-// Provisório: a tela anterior ao redesign, até a etapa que a substitui.
-export default function Page() {
-  return <MovementList />
+export default function MovimentacoesPage() {
+  // Filters and the page live in the URL, read on the client.
+  return (
+    <Suspense>
+      <MovimentacoesView />
+    </Suspense>
+  )
 }
