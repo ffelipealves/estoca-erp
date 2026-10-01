@@ -1,25 +1,27 @@
-import type { UserRole } from "@/lib/api";
+import type { Role } from "@/lib/estoca/types"
 
-export const DEMO_PASSWORD = "demo123";
+/** As contas de demonstração existem em toda sandbox, com a mesma senha. */
+export const DEMO_PASSWORD = "demo123"
 
-export interface DemoUserProfile {
-  description: string;
-  email: string;
-  label: string;
-  role: UserRole;
+export interface DemoUser {
+  role: Role
+  email: string
+  summary: string
 }
 
-export const DEMO_USERS: readonly DemoUserProfile[] = [
+export const DEMO_USERS: readonly DemoUser[] = [
   {
-    description: "Acesso completo para cadastrar e editar o catálogo.",
-    email: "admin@estoca.demo",
-    label: "Administrador",
     role: "admin",
+    email: "admin@estoca.demo",
+    summary: "Gerencia catálogo e categorias, registra movimentações e pode resetar a sandbox.",
   },
   {
-    description: "Acesso operacional para consultar e movimentar o estoque.",
-    email: "operador@estoca.demo",
-    label: "Operador",
     role: "operador",
+    email: "operador@estoca.demo",
+    summary: "Consulta tudo e registra movimentações. Ações de gestão aparecem travadas.",
   },
-];
+]
+
+export function demoUserFor(role: Role): DemoUser {
+  return DEMO_USERS.find((user) => user.role === role) ?? DEMO_USERS[0]
+}

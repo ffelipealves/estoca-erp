@@ -122,6 +122,14 @@ export const ROLE_LABEL: Record<Role, string> = {
   operador: "Operador",
 }
 
+/** What a fresh sandbox starts with. Mirrors `backend/app/services/seed_service.py`. */
+export const SEED_COUNTS = {
+  categories: 4,
+  products: 16,
+  /** One opening entry per product plus 23 day-to-day movements. */
+  movements: 39,
+}
+
 export const MOVEMENT_META: Record<
   MovementType,
   { label: string; verb: string; done: string; glyph: string; explain: string; quantityLabel: string }

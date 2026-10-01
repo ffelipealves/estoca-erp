@@ -11,6 +11,7 @@ import {
   type SessionResetResult,
 } from "@/lib/api";
 import { DEMO_PASSWORD, DEMO_USERS } from "@/lib/demo-users";
+import { ROLE_LABEL } from "@/lib/estoca/rules";
 
 const PERMISSIONS: Array<{ admin: boolean; label: string; operador: boolean }> = [
   { admin: true, label: "Consultar produtos, categorias e histórico", operador: true },
@@ -303,11 +304,11 @@ export function AdminPanel() {
             return (
               <li className="flex flex-wrap items-center gap-4 px-5 py-4 sm:px-6" key={demoUser.email}>
                 <span className="grid size-10 shrink-0 place-items-center rounded-lg bg-[#17201d] font-display text-lg font-bold text-emerald-300">
-                  {demoUser.label.charAt(0)}
+                  {ROLE_LABEL[demoUser.role].charAt(0)}
                 </span>
                 <div className="min-w-0 flex-1">
                   <div className="flex flex-wrap items-center gap-2">
-                    <p className="font-semibold text-stone-900">{demoUser.label}</p>
+                    <p className="font-semibold text-stone-900">{ROLE_LABEL[demoUser.role]}</p>
                     {isCurrent ? (
                       <span className="rounded-full bg-emerald-100 px-2 py-0.5 font-mono text-[9px] font-semibold uppercase tracking-wider text-emerald-800">
                         Você

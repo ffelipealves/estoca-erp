@@ -19,6 +19,10 @@ export interface SessionInfo extends SessionBootstrapResponse {
   created_at: string;
   last_activity_at: string;
   ttl_seconds: number;
+  /** Janela de inatividade: cada requisição empurra o prazo até este tanto. */
+  inactivity_seconds: number;
+  /** Limite absoluto, que nenhuma atividade estende. */
+  max_expires_at: string;
 }
 
 export interface SessionResetResult {
@@ -51,6 +55,7 @@ export interface AuthSession {
 export interface Category {
   id: string;
   name: string;
+  description: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -86,6 +91,7 @@ export interface StockMovement {
   performed_by_user_id: string | null;
   type: StockMovementType;
   quantity: number;
+  previous_quantity: number;
   resulting_quantity: number;
   note: string | null;
   created_at: string;
@@ -101,6 +107,11 @@ export interface StockMovementPage {
 
 export interface StockBalancePoint {
   at: string;
+  movement_id: string;
+  type: StockMovementType;
+  product_id: string;
+  /** Quanto essa movimentação moveu o estoque total. */
+  delta: number;
   total_quantity: number;
 }
 
@@ -185,6 +196,22 @@ export function clearStoredAuth(): void {
   }
 }
 
+interface ApiListener {
+  /** Toda resposta 2xx: a API acabou de renovar a atividade da sessão. */
+  onSuccess?: () => void;
+  onUnauthorized?: (error: ApiError, path: string) => void;
+}
+
+const listeners = new Set<ApiListener>();
+
+/** Avisa quem acompanha o relógio e a validade da sessão. */
+export function subscribeApi(listener: ApiListener): () => void {
+  listeners.add(listener);
+  return () => {
+    listeners.delete(listener);
+  };
+}
+
 async function readErrorPayload(response: Response): Promise<ApiErrorPayload> {
   try {
     return (await response.json()) as ApiErrorPayload;
@@ -222,12 +249,18 @@ export async function apiRequest<T>(
 
   if (!response.ok) {
     const payload = await readErrorPayload(response);
-    throw new ApiError(
+    const error = new ApiError(
       payload.detail ?? `A API respondeu com status ${response.status}.`,
       response.status,
       payload.code,
     );
+    if (response.status === 401) {
+      listeners.forEach((listener) => listener.onUnauthorized?.(error, path));
+    }
+    throw error;
   }
+
+  listeners.forEach((listener) => listener.onSuccess?.());
 
   if (response.status === 204) {
     return undefined as T;
@@ -238,6 +271,17 @@ export async function apiRequest<T>(
   } catch {
     throw new ApiError("A API retornou uma resposta inválida.", response.status);
   }
+}
+
+export function clearStoredSessionId(): void {
+  if (typeof window !== "undefined") {
+    window.sessionStorage.removeItem(SESSION_STORAGE_KEY);
+  }
+}
+
+/** Acorda o servidor gratuito antes de criar a sandbox. Não toca na sessão. */
+export function checkHealth(signal?: AbortSignal): Promise<{ status: string }> {
+  return apiRequest<{ status: string }>("/healthz", { signal });
 }
 
 export function bootstrapSession(
@@ -273,16 +317,24 @@ export function listCategories(signal?: AbortSignal): Promise<Category[]> {
   return apiRequest<Category[]>("/api/v1/categories", { signal });
 }
 
-export function createCategory(name: string): Promise<Category> {
+export function createCategory(
+  name: string,
+  description?: string,
+): Promise<Category> {
   return apiRequest<Category>("/api/v1/categories", {
-    body: JSON.stringify({ name }),
+    body: JSON.stringify({ name, description }),
     method: "POST",
   });
 }
 
-export function updateCategory(categoryId: string, name: string): Promise<Category> {
+/** PUT substitui a categoria inteira: sem `description`, a API a apaga. */
+export function updateCategory(
+  categoryId: string,
+  name: string,
+  description?: string,
+): Promise<Category> {
   return apiRequest<Category>(`/api/v1/categories/${categoryId}`, {
-    body: JSON.stringify({ name }),
+    body: JSON.stringify({ name, description }),
     method: "PUT",
   });
 }

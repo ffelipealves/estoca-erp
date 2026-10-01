@@ -1,10 +1,9 @@
 import type { Metadata, Viewport } from "next"
 import { Archivo, Barlow_Condensed, IBM_Plex_Mono, IBM_Plex_Sans } from "next/font/google"
 
-import { SessionGate } from "@/components/session/SessionGate"
+import { BootGate } from "@/components/estoca/boot-gate"
 import { Toaster } from "@/components/ui/sonner"
-import { AuthProvider } from "@/context/AuthProvider"
-import { SessionProvider } from "@/context/SessionProvider"
+import { EstocaProvider } from "@/lib/estoca/store"
 
 import "./globals.css"
 
@@ -53,12 +52,10 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       className={`${archivo.variable} ${legacyBodyFont.variable} ${legacyDisplayFont.variable} ${legacyMonoFont.variable} h-full antialiased`}
     >
       <body className="min-h-full">
-        <SessionProvider>
-          <SessionGate>
-            <AuthProvider>{children}</AuthProvider>
-          </SessionGate>
-        </SessionProvider>
-        <Toaster position="bottom-right" closeButton />
+        <EstocaProvider>
+          <BootGate>{children}</BootGate>
+          <Toaster position="bottom-right" closeButton />
+        </EstocaProvider>
       </body>
     </html>
   )
