@@ -62,6 +62,8 @@ async def get_session_info(
         last_activity_at=current_session.last_activity_at,
         expires_at=expires_at,
         ttl_seconds=ttl_seconds,
+        inactivity_seconds=int(session_service.inactivity_limit.total_seconds()),
+        max_expires_at=session_service.max_expires_at(current_session),
     )
 
 

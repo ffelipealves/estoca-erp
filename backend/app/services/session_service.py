@@ -56,8 +56,11 @@ class SessionService:
 
     def expires_at(self, session: Session) -> datetime:
         inactivity_expiration = session.last_activity_at + self.inactivity_limit
-        age_expiration = session.created_at + self.max_age
-        return min(inactivity_expiration, age_expiration)
+        return min(inactivity_expiration, self.max_expires_at(session))
+
+    def max_expires_at(self, session: Session) -> datetime:
+        """Limite absoluto: nenhuma atividade estende a sessão além dele."""
+        return session.created_at + self.max_age
 
     def is_expired(self, session: Session, now: datetime) -> bool:
         inactive_for = now - session.last_activity_at

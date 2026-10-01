@@ -1,8 +1,10 @@
+from datetime import datetime, timedelta
 from uuid import UUID
 
 from httpx import ASGITransport, AsyncClient
 from sqlalchemy import delete
 
+from app.core.config import settings
 from app.core.database import async_session_factory
 from app.main import app
 from app.models.session import Session
@@ -77,6 +79,40 @@ async def test_bootstrap_is_idempotent_and_isolates_two_clients() -> None:
             assert {item.id for item in products_a}.isdisjoint(
                 item.id for item in products_b
             )
+    finally:
+        if created_session_ids:
+            async with async_session_factory() as db:
+                await db.execute(
+                    delete(Session).where(Session.id.in_(created_session_ids))
+                )
+                await db.commit()
+
+
+async def test_session_info_exposes_the_expiry_rule() -> None:
+    """O cliente renova a contagem regressiva sem repetir a configuração."""
+    transport = ASGITransport(app=app)
+    created_session_ids: list[UUID] = []
+
+    try:
+        async with AsyncClient(transport=transport, base_url="http://test") as client:
+            bootstrap = await client.post("/api/v1/sessions/bootstrap")
+            created_session_ids.append(UUID(bootstrap.json()["session_id"]))
+
+            response = await client.get("/api/v1/sessions/me")
+            assert response.status_code == 200
+            info = response.json()
+
+            created_at = datetime.fromisoformat(info["created_at"])
+            last_activity_at = datetime.fromisoformat(info["last_activity_at"])
+            expires_at = datetime.fromisoformat(info["expires_at"])
+            max_expires_at = datetime.fromisoformat(info["max_expires_at"])
+            inactivity = timedelta(seconds=info["inactivity_seconds"])
+
+            assert inactivity == timedelta(minutes=settings.session_inactivity_minutes)
+            assert max_expires_at == created_at + timedelta(
+                hours=settings.session_max_age_hours
+            )
+            assert expires_at == min(last_activity_at + inactivity, max_expires_at)
     finally:
         if created_session_ids:
             async with async_session_factory() as db:

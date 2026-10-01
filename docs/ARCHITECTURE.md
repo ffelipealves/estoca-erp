@@ -142,7 +142,7 @@ Prefixo `/api/v1`; limpeza interna em `/internal` (`include_in_schema=False`).
 
 **Sessão** (sem JWT — cookie `estoca_session` ou header `X-Session-Id`)
 - `POST /sessions/bootstrap` — cria sessão + seed se ausente/expirada; senão só atualiza `last_activity_at`. Seta cookie e retorna `session_id` no corpo.
-- `GET /sessions/me` — info da sessão + TTL restante.
+- `GET /sessions/me` — info da sessão: `created_at`, `last_activity_at`, `expires_at`, TTL restante, e a regra de expiração (`inactivity_seconds` e `max_expires_at`), para o cliente renovar a contagem regressiva a cada resposta sem repetir a configuração.
 - `POST /sessions/me/reset` — reset da sessão atual (ver AGENTS.md). **Admin only.** Exposto na aba Administração.
 
 **Auth**
