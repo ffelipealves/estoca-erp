@@ -43,6 +43,13 @@ export function formatSandboxId(id: string) {
   return `${raw.slice(0, 4)}-${raw.slice(4, 8)}`
 }
 
+/** A span of time in the largest whole unit: "2 horas", "90 minutos". */
+export function formatDuration(ms: number) {
+  const minutes = Math.round(ms / 60_000)
+  if (minutes % 60 === 0) return pluralize(minutes / 60, "hora", "horas")
+  return pluralize(minutes, "minuto", "minutos")
+}
+
 export function pluralize(count: number, one: string, many: string) {
   return `${formatInt(count)} ${count === 1 ? one : many}`
 }

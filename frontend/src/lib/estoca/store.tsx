@@ -19,6 +19,7 @@ import {
   listCategories,
   listProducts,
   login as requestLogin,
+  resetSession,
   storeAuth,
   storeSessionId,
   subscribeApi,
@@ -103,6 +104,8 @@ export interface EstocaActions {
   updateCategory(id: string, draft: CategoryDraft): Promise<WriteResult>
   /** The API refuses while products still use the category. */
   deleteCategory(id: string): Promise<WriteResult>
+  /** Back to the seed catalog; login, sandbox id and the 24 h limit stay. */
+  resetSandbox(): Promise<WriteResult<{ categories: number; products: number }>>
 }
 
 interface BootInfo {
@@ -448,6 +451,16 @@ export function EstocaProvider({ children }: { children: React.ReactNode }) {
           return { ok: true, value: undefined }
         } catch (error) {
           return { ok: false, message: describeError(error, "Não foi possível excluir a categoria.") }
+        }
+      },
+      async resetSandbox() {
+        try {
+          const result = await resetSession()
+          void loadCatalog()
+          setMovementsVersion((v) => v + 1)
+          return { ok: true, value: { categories: result.categories_seeded, products: result.products_seeded } }
+        } catch (error) {
+          return { ok: false, message: describeError(error, "Não foi possível resetar a sandbox.") }
         }
       },
     }),
