@@ -73,6 +73,7 @@ async def test_stock_movement_api_supports_roles_pagination_and_isolation() -> N
                 },
             )
             assert entrance.status_code == 201
+            assert entrance.json()["previous_quantity"] == initial_quantity
             assert entrance.json()["resulting_quantity"] == initial_quantity + 5
             assert entrance.json()["performed_by_user_id"] == operator_id
             assert entrance.json()["note"] == "Entrada pelo operador"
@@ -115,6 +116,7 @@ async def test_stock_movement_api_supports_roles_pagination_and_isolation() -> N
                 },
             )
             assert adjustment.status_code == 201
+            assert adjustment.json()["previous_quantity"] == initial_quantity + 5
             assert adjustment.json()["resulting_quantity"] == 2
 
             first_page = await client_a.get(

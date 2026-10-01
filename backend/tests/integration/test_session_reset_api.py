@@ -63,6 +63,7 @@ async def test_reset_is_admin_only_and_preserves_session_and_users() -> None:
                         performed_by_user_id=users_before[0].id,
                         type=StockMovementType.ajuste,
                         quantity=0,
+                        previous_quantity=0,
                         resulting_quantity=0,
                         note="Movimentação criada para testar o reset",
                     )

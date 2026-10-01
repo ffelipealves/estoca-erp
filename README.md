@@ -140,8 +140,8 @@ separados.
 - **Saldo coerente:** somente `stock_movement_service` altera
   `product.quantity`; saldo e histórico são persistidos na mesma transação.
 - **Semântica explícita:** entrada e saída recebem deltas positivos; ajuste
-  recebe o saldo final absoluto. Toda movimentação registra
-  `resulting_quantity`.
+  recebe o saldo final absoluto. Toda movimentação registra o saldo anterior
+  (`previous_quantity`) e o resultante (`resulting_quantity`).
 - **Fallback entre domínios:** o frontend envia cookie e `X-Session-Id`, porque
   Vercel e Render estão em domínios diferentes e cookies de terceiros podem ser
   recusados.

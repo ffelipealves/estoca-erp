@@ -119,6 +119,7 @@ erDiagram
         uuid performed_by_user_id FK
         enum type
         int quantity
+        int previous_quantity
         int resulting_quantity
         varchar note
         timestamptz created_at
@@ -131,7 +132,7 @@ Toda FK para `sessions.id` é `CASCADE`. `products.category_id` é `RESTRICT` (b
 - **`demo_users`**: `id`, `session_id`, `email`, `password_hash`, `role` (`admin`/`operador`), `full_name`. `UNIQUE(session_id, email)`.
 - **`categories`**: `id`, `session_id`, `name`, `description` (nullable, até 120 caracteres — migration `0002`), `created_at`, `updated_at`. `UNIQUE(session_id, name)`.
 - **`products`**: `id`, `session_id`, `category_id` (FK RESTRICT), `name`, `sku`, `price` (numeric 10,2), `quantity` (default 0), `low_stock_threshold` (default 5 — já na migration inicial, é usado só no sprint 2 mas evita segunda migration), `created_at`, `updated_at`. `UNIQUE(session_id, sku)`.
-- **`stock_movements`**: `id`, `session_id`, `product_id` (FK CASCADE), `type` (`entrada`/`saida`/`ajuste`), `quantity`, `resulting_quantity`, `note` (nullable), `performed_by_user_id` (FK → demo_users, `SET NULL`), `created_at`. Índice composto `(session_id, product_id, created_at)`.
+- **`stock_movements`**: `id`, `session_id`, `product_id` (FK CASCADE), `type` (`entrada`/`saida`/`ajuste`), `quantity`, `previous_quantity` (saldo do produto antes de aplicar — migration `0003`, que preencheu as linhas existentes pelo delta em entrada/saída e pelo `LAG` no ajuste), `resulting_quantity`, `note` (nullable), `performed_by_user_id` (FK → demo_users, `SET NULL`), `created_at`. Índice composto `(session_id, product_id, created_at)`.
 
 Enums nativos do Postgres via `sa.Enum(...)`. Rascunhar todos os models antes do primeiro `alembic revision --autogenerate`, para sair com uma migration inicial única (`0001_initial_schema.py`).
 

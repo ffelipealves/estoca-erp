@@ -212,6 +212,7 @@ async def test_product_create_enforces_rbac_sku_limit_and_initial_stock() -> Non
                 assert len(movements) == 1
                 assert movements[0].type is StockMovementType.entrada
                 assert movements[0].quantity == 7
+                assert movements[0].previous_quantity == 0
                 assert movements[0].resulting_quantity == 7
                 assert movements[0].performed_by_user_id == admin_user_id
                 assert movements[0].note == "Estoque inicial"

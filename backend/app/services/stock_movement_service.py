@@ -120,6 +120,7 @@ class StockMovementService:
         if scoped_product is None:
             raise NotFoundError("Produto não encontrado")
 
+        previous_quantity = scoped_product.quantity
         scoped_product.quantity = quantity
         await self.products.save(scoped_product)
         return await self.movements.create(
@@ -129,6 +130,7 @@ class StockMovementService:
                 performed_by_user_id=performed_by_user_id,
                 type=StockMovementType.entrada,
                 quantity=quantity,
+                previous_quantity=previous_quantity,
                 resulting_quantity=quantity,
                 note="Estoque inicial",
             )
@@ -151,8 +153,9 @@ class StockMovementService:
         if product is None:
             raise NotFoundError("Produto não encontrado")
 
+        previous_quantity = product.quantity
         resulting_quantity = self._calculate_resulting_quantity(
-            current_quantity=product.quantity,
+            current_quantity=previous_quantity,
             movement_type=movement_type,
             quantity=quantity,
         )
@@ -168,6 +171,7 @@ class StockMovementService:
                 performed_by_user_id=performed_by_user_id,
                 type=movement_type,
                 quantity=quantity,
+                previous_quantity=previous_quantity,
                 resulting_quantity=resulting_quantity,
                 note=normalized_note,
             )

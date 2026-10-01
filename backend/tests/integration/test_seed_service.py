@@ -112,3 +112,21 @@ async def test_seed_leaves_a_low_stock_queue_by_urgency() -> None:
         }
 
         await db.rollback()
+
+
+async def test_seed_history_chains_previous_and_resulting_balances() -> None:
+    """Cada movimentação parte do saldo em que a anterior do produto parou."""
+    async with async_session_factory() as db:
+        session = (await SessionService(db).resolve_or_create(None)).session
+        await SeedService(db).seed_session(session.id)
+
+        products = await ProductRepository(db).list_by_session(session.id)
+        repository = StockMovementRepository(db)
+        for product in products:
+            history = await repository.list_by_product(session.id, product.id)
+            assert history[0].previous_quantity == 0
+            for before, after in zip(history, history[1:], strict=False):
+                assert after.previous_quantity == before.resulting_quantity
+            assert history[-1].resulting_quantity == product.quantity
+
+        await db.rollback()

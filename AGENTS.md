@@ -13,7 +13,7 @@ Backend em camadas pragmáticas — `routers` → `services` (regra de negócio)
 ## Gotchas que sustentam o sistema
 
 - **`stock_movement_service` é o único lugar que escreve `product.quantity`** — todo o resto só lê. É o que mantém saldo e histórico de movimentações coerentes entre si.
-- **Semântica de `quantity` em movimentações**: `entrada`/`saida` é delta (sempre positivo; `saida` valida contra o saldo atual, 422 se insuficiente). `ajuste` é a quantidade **absoluta final** — o service calcula o delta internamente. Toda movimentação grava `resulting_quantity` (saldo após aplicar).
+- **Semântica de `quantity` em movimentações**: `entrada`/`saida` é delta (sempre positivo; `saida` valida contra o saldo atual, 422 se insuficiente). `ajuste` é a quantidade **absoluta final** — o service calcula o delta internamente. Toda movimentação grava `previous_quantity` e `resulting_quantity` (saldo antes e depois de aplicar), lidos e escritos sob o lock do produto.
 - **Cookie de sessão precisa de fallback por header.** Frontend (Vercel) e backend (Render) ficam em domínios públicos diferentes — `SameSite=None` é instável entre navegadores nesse cenário. `POST /sessions/bootstrap` retorna `session_id` no corpo também; o frontend guarda em `sessionStorage` e manda como header `X-Session-Id`; a dependency de sessão aceita cookie OU header.
 - **Reset manual de sessão não desloga o admin** — apaga `stock_movements` → `products` → `categories` e reseeda o catálogo, mas preserva `demo_users` e o `session_id`.
 - **Limpeza de sessões expiradas é via cascade**: o endpoint de limpeza só faz `DELETE FROM sessions WHERE ...`; o Postgres cuida do resto via FK cascade. Nunca escrever DELETE manual tabela por tabela.

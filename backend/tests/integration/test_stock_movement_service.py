@@ -29,6 +29,7 @@ async def test_stock_movement_rules_keep_balance_and_history_consistent() -> Non
             quantity=10,
             note=" Reposição ",
         )
+        assert entrance.previous_quantity == initial_quantity
         assert entrance.resulting_quantity == initial_quantity + 10
         assert entrance.note == "Reposição"
 
@@ -39,6 +40,7 @@ async def test_stock_movement_rules_keep_balance_and_history_consistent() -> Non
             movement_type=StockMovementType.saida,
             quantity=4,
         )
+        assert output.previous_quantity == initial_quantity + 10
         assert output.resulting_quantity == initial_quantity + 6
 
         with pytest.raises(
@@ -60,7 +62,10 @@ async def test_stock_movement_rules_keep_balance_and_history_consistent() -> Non
             movement_type=StockMovementType.ajuste,
             quantity=2,
         )
+        # Ajuste guarda o saldo que havia antes da contagem: é o que mostra a
+        # diferença, já que `quantity` é o saldo final absoluto.
         assert adjustment.quantity == 2
+        assert adjustment.previous_quantity == initial_quantity + 6
         assert adjustment.resulting_quantity == 2
 
         refreshed_product = await ProductRepository(db).get_by_id(
@@ -97,6 +102,7 @@ async def test_stock_movement_limit_blocks_balance_change() -> None:
                 performed_by_user_id=user.id,
                 type=StockMovementType.ajuste,
                 quantity=0,
+                previous_quantity=0,
                 resulting_quantity=0,
                 note="Preenchimento do limite",
             )

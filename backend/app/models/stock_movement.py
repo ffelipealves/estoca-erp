@@ -54,6 +54,7 @@ class StockMovement(Base):
         )
     )
     quantity: Mapped[int] = mapped_column(Integer)
+    previous_quantity: Mapped[int] = mapped_column(Integer)
     resulting_quantity: Mapped[int] = mapped_column(Integer)
     note: Mapped[str | None] = mapped_column(String(500), nullable=True)
     created_at: Mapped[datetime] = mapped_column(

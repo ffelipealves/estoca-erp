@@ -30,6 +30,7 @@ class StockMovementResponse(BaseModel):
     performed_by_user_id: UUID | None
     type: StockMovementType
     quantity: int
+    previous_quantity: int
     resulting_quantity: int
     note: str | None
     created_at: datetime
