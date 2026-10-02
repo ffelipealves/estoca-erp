@@ -11,59 +11,71 @@ Invariantes cross-cutting (isolamento por sessão, quem escreve `product.quantit
 - `repositories/` — única camada que toca `AsyncSession`/SQL diretamente.
 - `services/` — regra de negócio; único lugar que chama repositories de mais de uma entidade numa mesma operação (ex.: criar produto com estoque inicial mexe em `products` e `stock_movements`).
 - `routers/` — só parsing de request, chamada ao service certo, e devolver o schema de resposta. Sem lógica de negócio.
-- `core/` — `config.py` (Settings via pydantic-settings), `database.py` (engine async + `get_db`), `security.py` (bcrypt + JWT), `deps.py` (`get_current_session`, `get_current_user`, `require_role`), `errors.py` (`DomainError` e subclasses).
+- `core/` — `config.py` (Settings via pydantic-settings), `database.py` (engine async + `get_db`), `security.py` (bcrypt + JWT), `deps.py` (`get_current_session`, `get_current_user`, `require_role` e o `DbSession`, com escopo `function` para o commit de `get_db` acontecer antes de a resposta sair), `errors.py` (`DomainError` e subclasses).
 
 ## Frontend
 
-Next.js App Router. `app/` contém página, layout e estilos globais;
-`context/SessionProvider.tsx` controla bootstrap/cold start e
-`context/AuthProvider.tsx` restaura o login durante a aba. `lib/api.ts` centraliza
-cookie, fallback `X-Session-Id`, Bearer token e contratos HTTP.
+Next.js App Router com Tailwind v4, componentes do shadcn/ui sobre Radix
+(`components/ui/`, customizados como "teclas" e "visores") e o sistema visual
+"Coletor" descrito em [`DESIGN.md`](DESIGN.md): tokens de cor e raio em
+`app/globals.css`, Archivo como única família (o eixo de largura condensa
+números e títulos), amarelo reservado à ação principal e cor de operação só nos
+sinais `+ − =`.
 
-A seção inicial é o Painel (`components/dashboard/DashboardPanel.tsx`), que
-concentra o fechamento da sessão e o gráfico de valor por categoria
-(`CategoryValueChart`, derivado do mesmo `GET /products`) e a evolução do saldo
-(`BalanceTimelineChart`, sobre `GET /stock-movements/balance-timeline`); as telas de catálogo e
-operação ficam com os próprios dados, sem resumo embutido. Os gráficos são
-marcação, CSS e SVG à mão, sem biblioteca: barra horizontal fina para comparação
-de magnitude, série única em um só tom (`#0f8a5f`, o acento do app, validado
-contra a superfície de papel), rótulos em tokens de texto e nunca na cor da
-série. A série histórica é desenhada em **degrau**, não em diagonal: o saldo muda
-no evento e se mantém até o próximo, e interpolar afirmaria uma variação contínua
-que não aconteceu. O SVG mede a largura real do container para os rótulos não
-encolherem, e carrega um `viewBox` correspondente para que uma medição defasada
-escale o desenho em vez de cortá-lo.
+**Rotas.** `/entrar` é o login; o grupo `app/(app)/` tem uma rota por área
+(`/painel`, `/produtos`, `/categorias`, `/movimentacoes`, `/administracao`) e um
+layout que guarda o acesso: sem login, leva a `/entrar?next=<área>` e volta para
+ela depois. Tudo renderiza no cliente, porque sessão e login vivem no
+`sessionStorage` da aba. Filtros, ordenação e página ficam na URL
+(`components/estoca/use-url-state.ts`), escritos pelo `history` nativo.
 
-O shell autenticado está em `components/layout/AppShell.tsx`, que declara as
-seções em `NAV_GROUPS` — a navegação, o cabeçalho e o conteúdo derivam dessa
-mesma estrutura, e um grupo marcado `adminOnly` não é renderizado para operador.
-Produtos e categorias possuem componentes próprios com estados de carregamento,
-erro e vazio. Os controles de mutação permanecem visíveis para o operador —
-apagados, com cadeado e `aria-disabled` via `components/auth/AdminAction.tsx` —
-e o clique explica a restrição em vez de a ação sumir da tela; `lib/permissions.ts`
-centraliza esse texto e converte um 403 da API na mesma orientação.
+**Dados.** `lib/api.ts` centraliza os contratos HTTP, o cookie, o fallback
+`X-Session-Id` e o Bearer token, e avisa quem acompanha a sessão a cada resposta
+2xx ou 401. `lib/estoca/store.tsx` é a store da aplicação:
 
-A tabela de produtos ordena e filtra **no cliente** (nome, categoria, preço e
-saldo; filtro por categoria e por estoque abaixo do mínimo). É deliberado: o
-teto é de 50 produtos por sessão e a lista inteira já está em memória, então uma
-ida ao servidor por clique de cabeçalho só somaria latência. Os parâmetros
-`category_id`, `search` e `low_stock` de `GET /products` continuam existindo e
-testados para consumidores da API. No mobile o cabeçalho da tabela fica oculto,
-então a ordenação ganha um `select` próprio.
+- **Boot** em três requisições reais — `/healthz` acorda o servidor gratuito,
+  `POST /sessions/bootstrap` abre ou reabre a sandbox e `GET /sessions/me` lê o
+  prazo. Um 401 durante o boot é falha de boot, com "Tentar novamente".
+- **Relógio:** a cada resposta da API, o prazo é recalculado como
+  `min(agora + inactivity_seconds, max_expires_at)`, no relógio do servidor. O
+  fim do prazo, ou um 401 depois do boot, leva à tela de sandbox expirada; se só
+  o token venceu, a pessoa volta a `/entrar` na mesma sandbox.
+- **Login e perfil:** `POST /auth/login` com as contas de `lib/demo-users.ts`;
+  trocar de perfil é logar com a outra conta, na mesma sandbox.
+- **Catálogo:** categorias e produtos (no máximo 50) ficam em memória e são a
+  fonte dos totais, da fila de estoque baixo e do valor por categoria. As ações
+  de escrita chamam a API e atualizam a store com a resposta; erros voltam como
+  `WriteResult`, com o campo culpado quando há um (SKU ou nome repetido).
+- **Movimentações** não ficam na store: o histórico pagina e filtra no servidor,
+  o Painel lê as seis mais recentes e a série de saldo. Cada registro sobe uma
+  versão que faz essas telas relerem, e marca a linha nova para piscar uma vez.
 
-A lista de movimentações continua paginada **no servidor**, e por isso os
-filtros de produto, tipo e período também são do servidor. O `input[type=date]`
-devolve um dia civil sem fuso; a conversão para instante (início e fim do dia
-local) acontece no navegador, o único lugar que conhece o fuso do usuário.
-Qualquer mudança de filtro volta para a primeira página.
-`components/admin/AdminPanel.tsx` concentra a área restrita: identidade da
-sandbox com contagem regressiva a partir de `GET /sessions/me`, matriz de
-permissões por perfil e o reset da sessão. As credenciais demo ficam em
-`lib/demo-users.ts`, compartilhadas entre a tela de login e o painel. O resumo do estoque
-é derivado no cliente a partir da mesma lista de produtos, sem endpoint ou fonte
-de estado paralela. O saldo do produto é apenas exibido: nenhuma tela de catálogo
-escreve `quantity`; a quantidade inicial e as movimentações continuam passando
-pelo backend.
+`lib/estoca/adapters.ts` converte o snake_case da API para os tipos das telas;
+o preço vira número só para exibição, e os totais somam em centavos inteiros
+(`lib/estoca/selectors.ts`). `lib/estoca/use-api-query.ts` é a leitura de uma
+tela: carrega, mantém o dado anterior enquanto relê e oferece a nova tentativa.
+
+**Telas** ficam em `components/estoca/<área>/`. O shell
+(`components/estoca/shell/`) tem a barra de status, o rail (que vira menu
+lateral no celular), o campo de leitura e os atalhos `M` e `/`. Ações que o
+perfil não pode executar continuam visíveis e travadas
+(`components/estoca/locked-button.tsx`); o clique explica o motivo e oferece
+trocar para Administrador (`components/estoca/overlays.tsx`, que também abre o
+modal de movimentação de qualquer área).
+
+**Modais.** Todo formulário de escrita abre em `components/ui/dialog.tsx`, sobre
+o Radix. A prop `busy` trava Esc, clique fora e X durante o envio; o foco volta
+a quem abriu o modal (o Radix só faria isso com um `DialogTrigger`); cada
+abertura cria um formulário novo, e um envio bem-sucedido mantém o formulário
+travado durante a animação de saída. No celular o modal é uma folha inferior
+com o corpo rolável.
+
+**Gráfico.** A série de saldo (`components/estoca/painel/balance-timeline.tsx`,
+Recharts) é desenhada em **degrau**: o saldo muda no evento e se mantém até o
+próximo, e interpolar afirmaria uma variação contínua que não aconteceu. A linha
+é grafite; a cor da operação fica só no marcador, que também muda de forma
+(▲ entrada, ▼ saída, ◆ ajuste). Movimentações no mesmo instante — o estoque
+inicial do seed — viram um só ponto, e a mesma série existe como tabela.
 
 ## Modelo de dados
 
@@ -234,33 +246,40 @@ bootstrap na mesma sessão não duplica nenhum item.
 checkpoints permanece manual. `npm run screenshots`
 (`frontend/scripts/capture-screenshots.mjs`) percorre as telas principais com os
 dois perfis e grava as 16 imagens de `docs/screenshots/` (com os modais de
-produto, categoria e movimentação e a edição no celular); roda contra uma
+produto, categoria e movimentação, o bloqueio explicado ao operador e a edição
+no celular); roda contra uma
 sandbox nova, então as imagens sempre mostram o mesmo catálogo inicial, e apaga
 as imagens numeradas anteriores antes de gravar. `npm run demos`
 (`capture-demos.mjs`) grava os 6 GIFs de `docs/demos/` — Playwright registra a
 interação em vídeo e o `ffmpeg` converte, cortando a abertura da sessão pelo
 instante que cada roteiro marca; `npm run demos -- <nome>` grava só os GIFs
-indicados. Como o modal fica no fim do DOM, os seletores dos roteiros dentro
-dele precisam ser escopados a `dialog[open]`: um `label` ou `input` solto acha
-primeiro o filtro que está por trás. Há um teste E2E direcionado em Playwright/WebKit
-para o risco cross-domain principal: com cookies removidos, ele confirma em
-produção que bootstrap após recarga, login e movimentação preservam a sandbox
-por `X-Session-Id`. A suíte não roda na CI para evitar o download do navegador
-em todos os pushes.
+indicados. Como o modal é renderizado num portal no fim do DOM, os seletores dos
+roteiros dentro dele são escopados a `[data-slot="dialog-content"]`: um `label`
+ou `input` solto acha primeiro o filtro que está por trás. Há um teste E2E
+direcionado em Playwright/WebKit para o risco cross-domain principal: com
+cookies removidos, ele confirma que bootstrap após recarga, login e movimentação
+preservam a sandbox por `X-Session-Id` — contra a produção por padrão, ou contra
+o ambiente local com `PLAYWRIGHT_BASE_URL` e `PLAYWRIGHT_API_URL`. A suíte não
+roda na CI para evitar o download do navegador em todos os pushes.
 
 Todos os formulários de escrita — cadastro, edição e exclusão de produto e de
 categoria, e o registro de movimentação — abrem em modal
-(`components/common/Modal.tsx`, sobre `<dialog>` nativo; `size="lg"` para o
-formulário de movimentação, que tem três colunas). Cada tela tem uma suíte
-própria em Chromium desktop, `tests/e2e/product-modal.spec.ts`,
-`category-modal.spec.ts` e `movement-modal.spec.ts`, que rodam contra o frontend
-local: `PLAYWRIGHT_BASE_URL=http://localhost:3000 npm run test:e2e:modais`.
-Cobrem fechar por X, Esc, clique fora e Cancelar (rascunho descartado e foco
-devolvido), duplo clique, cliques repetidos e envios simultâneos ao salvar,
-cadastrar, excluir e registrar (uma única requisição; no caso da movimentação,
-o saldo final confirma que nada foi somado duas vezes), bloqueio de fechamento
-durante a operação e o erro da API dentro do modal. Login e atraso de rede
-compartilhados ficam em `tests/e2e/support/modal-helpers.ts`.
+(`components/ui/dialog.tsx`, sobre o Radix). Cada tela tem uma suíte própria em
+Chromium desktop, `tests/e2e/product-modal.spec.ts`, `category-modal.spec.ts` e
+`movement-modal.spec.ts`, que rodam contra o frontend local:
+`PLAYWRIGHT_BASE_URL=http://localhost:3000 npm run test:e2e:modais`. Os
+seletores são por papel, rótulo e id de campo, não por classe. Cobrem fechar por
+X, Esc, clique fora e Cancelar (rascunho descartado e foco devolvido), duplo
+clique, cliques repetidos — inclusive durante a animação de saída — e envios
+simultâneos ao salvar, cadastrar, excluir e registrar (uma única requisição; no
+caso da movimentação, o saldo final confirma que nada foi somado duas vezes),
+bloqueio de fechamento durante a operação, o erro da API dentro do modal, a
+tecla `M`, a exclusão que exige confirmação e a categoria com produtos, que não
+oferece exclusão. Login, atraso de rede e seleção em select compartilhados
+ficam em `tests/e2e/support/modal-helpers.ts`.
 
-A suíte atual do backend possui 35 testes. O seed populado, o reset e os
-limites de produtos e movimentações são cobertos contra PostgreSQL real.
+A suíte atual do backend possui 41 testes. O seed populado, o reset e os
+limites de produtos e movimentações são cobertos contra PostgreSQL real. Um
+teste chama a app ASGI diretamente e confere, no instante em que o corpo da
+resposta do bootstrap sai, que a sessão já está no banco — a garantia de que o
+commit vem antes da resposta.

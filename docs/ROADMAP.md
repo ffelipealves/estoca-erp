@@ -41,7 +41,8 @@ Incrementos entregues após o Dia 14, cada um publicado e verificado em produç�
 | 5b | Valor por categoria | Barra horizontal derivada de `GET /products`. A soma das barras fecha com o valor armazenado do card acima. |
 | 5c | Evolução do saldo | `GET /stock-movements/balance-timeline` reconstrói o saldo total por evento com `LAG` + soma corrente. Exigiu antes espalhar os carimbos do seed, que nasciam todos iguais. |
 | — | Faxina de interface | Remove marcadores do cronograma, pseudo-códigos que pareciam identificadores e jargão que escondia a ação dos botões; textos de ajuda passam a explicar o efeito, atrás de botões "?". |
-| — | Capturas de tela | `npm run screenshots` gera as doze imagens de `docs/screenshots/` com Playwright, contra uma sandbox recém-criada. |
+| — | Capturas de tela | `npm run screenshots` gera as imagens de `docs/screenshots/` (doze na época, hoje dezesseis) com Playwright, contra uma sandbox recém-criada. |
+| 6 | Redesign "Coletor" | Interface refeita a partir de um mock clicável: barra de status, rail, campo de leitura, atalhos de teclado, visor no modal de movimentação e uma rota por área, sobre shadcn/ui, Radix e Recharts, com o sistema visual em `docs/DESIGN.md`. No backend: seed de material de construção, descrição de categoria, saldo anterior em cada movimentação, série de saldo com a operação de cada ponto e a regra de expiração em `/sessions/me`. Os testes E2E reescritos acharam o commit que acontecia depois da resposta e o foco perdido ao fechar modais, ambos corrigidos. |
 
 ## Próximos passos fora do escopo das 2 semanas
 

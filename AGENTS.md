@@ -18,6 +18,7 @@ Backend em camadas pragmáticas — `routers` → `services` (regra de negócio)
 - **Reset manual de sessão não desloga o admin** — apaga `stock_movements` → `products` → `categories` e reseeda o catálogo, mas preserva `demo_users` e o `session_id`.
 - **Limpeza de sessões expiradas é via cascade**: o endpoint de limpeza só faz `DELETE FROM sessions WHERE ...`; o Postgres cuida do resto via FK cascade. Nunca escrever DELETE manual tabela por tabela.
 - **PKs são UUID em tudo**, dinheiro é `Numeric(10,2)` (nunca float), `created_at` de movimentação é sempre gerado no servidor (nunca aceito do cliente).
+- **O commit vem antes da resposta.** `DbSession` usa `Depends(get_db, scope="function")`: no escopo padrão do FastAPI, o código depois do `yield` roda só depois de a resposta sair, e o cliente que encadeia chamadas (bootstrap → `/sessions/me`, registrar → reler o histórico) leria o estado anterior. Há teste de regressão; não voltar ao escopo padrão.
 - **Erros de domínio** sobem pela hierarquia `DomainError` (`backend/app/core/errors.py`) com um exception handler global — services levantam a exceção certa, routers ficam limpos.
 
 ## Hospedagem
