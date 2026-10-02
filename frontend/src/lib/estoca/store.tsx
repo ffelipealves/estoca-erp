@@ -223,7 +223,14 @@ export function EstocaProvider({ children }: { children: React.ReactNode }) {
       setBoot({ status: "booting", mode: restoring ? "restaurando" : "frio", step: 0, error: null })
       const signal = AbortSignal.timeout(BOOT_TIMEOUT_MS)
       try {
-        await checkHealth(signal)
+        try {
+          await checkHealth(signal)
+        } catch (error) {
+          // Waking the server first is optional. Ad blockers drop /healthz (the
+          // EasyPrivacy list has `||onrender.com/health`); the bootstrap below
+          // wakes the server just the same. Only running out of time is fatal.
+          if (signal.aborted) throw error
+        }
         setBoot((b) => ({ ...b, step: 1 }))
         const { session_id: sessionId } = await bootstrapSession(signal)
         storeSessionId(sessionId)

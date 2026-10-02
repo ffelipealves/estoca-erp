@@ -157,7 +157,9 @@ test.describe("modal de movimentação", () => {
 
     await expectNoModal(page);
     expect(counts.POST).toBe(1);
-    await expect(page.getByText(`saldo agora é ${initialBalance + 2}.`)).toBeVisible();
+    const newest = page.locator("table tbody tr").first();
+    await expect(newest).toContainText("Arruela lisa");
+    await expect(newest).toContainText(String(initialBalance + 2));
     await expect(openButton(page)).toBeFocused();
 
     await openModal(page);

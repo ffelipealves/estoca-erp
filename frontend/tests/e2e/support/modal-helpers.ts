@@ -65,10 +65,14 @@ export async function pickOption(page: Page, trigger: Locator, option: string | 
   await page.locator('[data-slot="select-content"]').waitFor({ state: "detached" });
 }
 
-/** Clica várias vezes sem esperar: simula a pessoa insistindo no botão de envio. */
+/**
+ * Clica várias vezes sem esperar: simula a pessoa insistindo no botão de envio.
+ * Depois que o modal fecha, cada tentativa só espera um instante, para a rajada
+ * não durar mais que os avisos que o teste confere em seguida.
+ */
 export async function hammer(button: Locator, times = 15) {
   for (let i = 0; i < times; i += 1) {
-    await button.click({ force: true, noWaitAfter: true, timeout: 500 }).catch(() => {});
+    await button.click({ force: true, noWaitAfter: true, timeout: 100 }).catch(() => {});
   }
 }
 
