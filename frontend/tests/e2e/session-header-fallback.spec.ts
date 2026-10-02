@@ -1,6 +1,6 @@
 import { expect, test } from "@playwright/test";
 
-const API_ORIGIN = "https://estoca-api.onrender.com";
+const API_ORIGIN = process.env.PLAYWRIGHT_API_URL ?? "https://estoca-api.onrender.com";
 const SESSION_STORAGE_KEY = "estoca.session_id";
 
 interface ObservedRequest {
@@ -43,10 +43,10 @@ test("keeps the sandbox usable through X-Session-Id without cookies", async ({
     });
   });
 
+  const loginButton = page.getByRole("button", { name: "Entrar como Administrador" });
+
   await page.goto("/");
-  await expect(
-    page.getByRole("button", { name: "Entrar na demonstração" }),
-  ).toBeVisible({ timeout: 100_000 });
+  await expect(loginButton).toBeVisible({ timeout: 100_000 });
 
   const initialSessionId = await page.evaluate(
     (key) => window.sessionStorage.getItem(key),
@@ -57,9 +57,7 @@ test("keeps the sandbox usable through X-Session-Id without cookies", async ({
   await context.clearCookies();
   observedRequests.length = 0;
   await page.reload();
-  await expect(
-    page.getByRole("button", { name: "Entrar na demonstração" }),
-  ).toBeVisible({ timeout: 100_000 });
+  await expect(loginButton).toBeVisible({ timeout: 100_000 });
 
   const headerBootstrap = observedRequests.find(
     ({ method, path }) =>
@@ -79,9 +77,9 @@ test("keeps the sandbox usable through X-Session-Id without cookies", async ({
 
   await context.clearCookies();
   observedRequests.length = 0;
-  await page.getByRole("button", { name: "Entrar na demonstração" }).click();
-  await expect(page.getByRole("heading", { name: "Produtos" })).toBeVisible();
-  await expect(page.getByRole("heading", { name: "Pulso do estoque" })).toBeVisible();
+  await loginButton.click();
+  await expect(page.getByRole("heading", { name: "Painel", level: 1 })).toBeVisible();
+  await expect(page.getByRole("region", { name: "Totais da sandbox" })).toBeVisible();
 
   const headerLogin = observedRequests.find(
     ({ method, path }) => method === "POST" && path === "/api/v1/auth/login",
@@ -94,17 +92,21 @@ test("keeps the sandbox usable through X-Session-Id without cookies", async ({
   );
 
   await page.getByRole("button", { name: "Abrir menu" }).click();
-  await page.getByRole("button", { name: /Movimentações Entradas/ }).click();
-  await page.getByRole("button", { name: "+ Nova movimentação" }).click();
-  await page.getByRole("spinbutton", { name: "Quantidade recebida" }).fill("1");
-  await page
-    .getByRole("textbox", { name: "Observação opcional" })
-    .fill("Validação automatizada WebKit sem cookie");
+  await page.getByRole("dialog").getByRole("link", { name: "Movimentações" }).click();
+  await expect(page.getByRole("heading", { name: "Movimentações", level: 1 })).toBeVisible();
+
+  await page.getByRole("button", { name: "Movimentar" }).click();
+  const dialog = page.getByRole("dialog");
+  await dialog.getByRole("combobox", { name: "Produto" }).click();
+  await page.getByRole("option", { name: /Arruela lisa/ }).click();
+  await page.locator('[data-slot="select-content"]').waitFor({ state: "detached" });
+  await dialog.locator("#mov-qty").fill("1");
+  await dialog.getByLabel("Observação").fill("Validação automatizada WebKit sem cookie");
 
   await context.clearCookies();
   observedRequests.length = 0;
-  await page.getByRole("button", { name: "Registrar movimentação" }).click();
-  await expect(page.getByText(/Entrada registrada\. Saldo final:/)).toBeVisible();
+  await dialog.getByRole("button", { name: "Confirmar entrada" }).click();
+  await expect(page.getByText("Entrada registrada")).toBeVisible();
 
   const headerMovement = observedRequests.find(
     ({ method, path }) =>

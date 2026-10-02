@@ -3,51 +3,68 @@ import { expect, test, type Page } from "@playwright/test";
 import {
   CLOSE_ACTIONS,
   delayMutations as delayResourceMutations,
+  dialogOf,
+  expectFormsOnlyInModal,
+  expectNoModal,
+  hammer,
   loginAsAdmin,
+  pickOption,
+  requestSubmitMany,
 } from "./support/modal-helpers";
 
 const delayMutations = (page: Page, counts: Record<string, number>) =>
   delayResourceMutations(page, "stock-movements", counts);
 
-const dialogOf = (page: Page) => page.locator("dialog[open]");
-const productSelect = (page: Page) => dialogOf(page).locator("select");
-const quantityInput = (page: Page) => dialogOf(page).locator('input[type="number"]');
-const noteInput = (page: Page) => dialogOf(page).locator("textarea");
-const newButton = (page: Page) => page.getByRole("button", { name: "+ Nova movimentação" });
+const productSelect = (page: Page) => dialogOf(page).getByRole("combobox", { name: "Produto" });
+const quantityInput = (page: Page) => dialogOf(page).locator("#mov-qty");
+const noteInput = (page: Page) => dialogOf(page).getByLabel("Observação");
+// "Registrar movimentação" no desktop, "Movimentar" no celular.
+const openButton = (page: Page) =>
+  page.getByRole("button", { name: /^(Registrar movimentação|Movimentar)/ });
 
 async function openModal(page: Page) {
-  await newButton(page).click();
+  await openButton(page).click();
   await expect(dialogOf(page)).toHaveCount(1);
 }
 
-async function historyTotal(page: Page): Promise<number> {
-  const text = await page.getByText(/registros? no histórico/).innerText();
-  return Number(text.match(/^(\d+)/)?.[1]);
-}
-
-/** Saldo do produto selecionado, lido da opção do select ("Nome · saldo N"). */
-async function selectedBalance(page: Page): Promise<number> {
-  const label = await productSelect(page).locator("option:checked").innerText();
-  return Number(label.match(/saldo (\d+)/)?.[1]);
+async function chooseProduct(page: Page, name: string | RegExp) {
+  await pickOption(page, productSelect(page), name);
 }
 
 async function chooseType(page: Page, label: "Entrada" | "Saída" | "Ajuste") {
-  await dialogOf(page).locator("label", { hasText: label }).first().click();
+  await dialogOf(page).getByRole("radio", { name: label }).check({ force: true });
+}
+
+async function historyTotal(page: Page): Promise<number> {
+  const text = await page.locator('p[aria-live="polite"]').filter({ hasText: /movimentaç/ }).innerText();
+  return Number(text.match(/^(\d+)/)?.[1]);
+}
+
+/** Saldo atual do produto escolhido, lido do visor do modal. */
+async function readoutBalance(page: Page): Promise<number> {
+  const text = await dialogOf(page).locator("#mov-readout p.readout").first().innerText();
+  return Number(text.replace(/\D/g, ""));
 }
 
 test.describe("modal de movimentação", () => {
   test.beforeEach(async ({ page }) => {
-    await loginAsAdmin(page, "Movimentações");
-    await expect(page.locator("ol.divide-y > li").first()).toBeVisible();
+    await loginAsAdmin(page, "/movimentacoes");
+    await expect(page.locator("table tbody tr").first()).toBeVisible();
   });
 
-  test("abre em modal, com foco no produto e nada no topo da lista", async ({ page }) => {
+  test("abre em modal, com foco no produto e nada fora dele", async ({ page }) => {
     await openModal(page);
 
-    await expect(page.locator("dialog[open] form")).toHaveCount(1);
-    await expect(page.locator("form:not(dialog form)")).toHaveCount(0);
+    await expectFormsOnlyInModal(page);
     await expect(productSelect(page)).toBeFocused();
-    await expect(page.getByRole("button", { name: "Fechar formulário" })).toHaveCount(0);
+  });
+
+  test("a tecla M abre o modal de qualquer área", async ({ page }) => {
+    await page.locator("main h1").click();
+    await page.keyboard.press("m");
+
+    await expect(dialogOf(page)).toContainText("Registrar movimentação");
+    await expect(productSelect(page)).toBeFocused();
   });
 
   test("em tela baixa o foco inicial continua no produto", async ({ page }) => {
@@ -61,22 +78,24 @@ test.describe("modal de movimentação", () => {
     for (const width of [1440, 1024, 390]) {
       await page.setViewportSize({ height: 900, width });
       await openModal(page);
+      await chooseProduct(page, /Alicate universal/);
+      await chooseType(page, "Ajuste");
 
       const overflow = await dialogOf(page).evaluate((dialog) => {
-        const content = dialog.querySelector("div") as HTMLElement;
+        const body = dialog.querySelector('[data-slot="dialog-body"]') as HTMLElement;
         const box = dialog.getBoundingClientRect();
-        const outside = [...dialog.querySelectorAll("select, input, textarea, button")].filter(
+        const outside = [...dialog.querySelectorAll("button, input, textarea, [role=combobox]")].filter(
           (element) => {
             const rect = element.getBoundingClientRect();
             return rect.width > 0 && (rect.left < box.left - 1 || rect.right > box.right + 1);
           },
         );
-        return { horizontal: content.scrollWidth > content.clientWidth + 1, outside: outside.length };
+        return { horizontal: body.scrollWidth > body.clientWidth + 1, outside: outside.length };
       });
 
       expect(overflow, `largura ${width}`).toEqual({ horizontal: false, outside: 0 });
       await page.keyboard.press("Escape");
-      await expect(dialogOf(page)).toHaveCount(0);
+      await expectNoModal(page);
     }
   });
 
@@ -85,18 +104,20 @@ test.describe("modal de movimentação", () => {
       const total = await historyTotal(page);
 
       await openModal(page);
+      await chooseProduct(page, /Alicate universal/);
       await chooseType(page, "Saída");
       await quantityInput(page).fill("3");
       await noteInput(page).fill("RASCUNHO NÃO SALVO");
       await close(page);
 
-      await expect(dialogOf(page)).toHaveCount(0);
-      await expect(newButton(page)).toBeFocused();
+      await expectNoModal(page);
+      await expect(openButton(page)).toBeFocused();
       expect(await historyTotal(page)).toBe(total);
 
       await openModal(page);
-      await expect(dialogOf(page).getByRole("radio", { name: /Entrada/ })).toBeChecked();
-      await expect(quantityInput(page)).toHaveValue("1");
+      await expect(productSelect(page)).toContainText("Escolha o produto");
+      await expect(dialogOf(page).getByRole("radio", { name: "Entrada" })).toBeChecked();
+      await expect(quantityInput(page)).toHaveValue("");
       await expect(noteInput(page)).toHaveValue("");
     });
   }
@@ -122,54 +143,61 @@ test.describe("modal de movimentação", () => {
     const total = await historyTotal(page);
 
     await openModal(page);
-    const initialBalance = await selectedBalance(page);
+    await chooseProduct(page, /Arruela lisa/);
+    const initialBalance = await readoutBalance(page);
     await quantityInput(page).fill("2");
-    const submit = dialogOf(page).getByRole("button", { name: /Registrar movimentação|Registrando/ });
-    for (let i = 0; i < 15; i += 1) {
-      await submit.click({ force: true, noWaitAfter: true, timeout: 500 }).catch(() => {});
-    }
-    await expect(page.getByRole("button", { name: "Fechar", exact: true })).toBeDisabled();
+    const submit = dialogOf(page).getByRole("button", { name: /Confirmar entrada|Registrando/ });
+    await submit.click();
+    await expect(dialogOf(page).getByRole("button", { name: "Fechar", exact: true })).toBeDisabled();
     await page.keyboard.press("Escape");
     await page.mouse.click(3, 3);
     await expect(dialogOf(page)).toHaveCount(1);
+    // Insiste durante o envio e durante a saída do modal.
+    await hammer(submit);
 
-    await expect(dialogOf(page)).toHaveCount(0);
+    await expectNoModal(page);
     expect(counts.POST).toBe(1);
-    await expect(page.getByText(`Entrada registrada. Saldo final: ${initialBalance + 2}.`)).toBeVisible();
-    await expect(newButton(page)).toBeFocused();
+    await expect(page.getByText(`saldo agora é ${initialBalance + 2}.`)).toBeVisible();
+    await expect(openButton(page)).toBeFocused();
 
     await openModal(page);
+    await chooseProduct(page, /Arruela lisa/);
     await quantityInput(page).fill("2");
-    await dialogOf(page)
-      .locator("form")
-      .evaluate((form: HTMLFormElement) => {
-        for (let i = 0; i < 5; i += 1) form.requestSubmit();
-      });
-    await expect(dialogOf(page)).toHaveCount(0);
+    await requestSubmitMany(dialogOf(page));
+    await expectNoModal(page);
     expect(counts.POST).toBe(2);
 
     await openModal(page);
+    await chooseProduct(page, /Arruela lisa/);
     await quantityInput(page).fill("2");
     await quantityInput(page).focus();
     for (let i = 0; i < 8; i += 1) await page.keyboard.press("Enter");
-    await expect(dialogOf(page)).toHaveCount(0);
+    await expectNoModal(page);
     expect(counts.POST).toBe(3);
 
     await openModal(page);
-    expect(await selectedBalance(page)).toBe(initialBalance + 6);
+    await chooseProduct(page, /Arruela lisa/);
+    expect(await readoutBalance(page)).toBe(initialBalance + 6);
     await page.keyboard.press("Escape");
-    await expect(page.getByText(/registros? no histórico/)).toHaveText(`${total + 3} registros no histórico`);
+    await expect.poll(() => historyTotal(page)).toBe(total + 3);
   });
 
-  test("ajuste define o saldo absoluto", async ({ page }) => {
+  test("ajuste define o saldo absoluto e o histórico mostra a diferença", async ({ page }) => {
     await openModal(page);
+    await chooseProduct(page, /Alicate universal/);
+    const before = await readoutBalance(page);
     await chooseType(page, "Ajuste");
-    await expect(quantityInput(page)).toHaveValue(String(await selectedBalance(page)));
     await quantityInput(page).fill("7");
-    await dialogOf(page).getByRole("button", { name: "Registrar movimentação" }).click();
+    await expect(dialogOf(page).locator("#mov-readout")).toContainText(
+      `diferença de ${7 - before >= 0 ? "+" : "−"}${Math.abs(7 - before)}`,
+    );
+    await dialogOf(page).getByRole("button", { name: "Confirmar ajuste" }).click();
 
-    await expect(dialogOf(page)).toHaveCount(0);
-    await expect(page.getByText("Ajuste registrado. Saldo final: 7.")).toBeVisible();
+    await expectNoModal(page);
+    await expect(page.getByText("saldo agora é 7.")).toBeVisible();
+    const newest = page.locator("table tbody tr").first();
+    await expect(newest).toContainText("=7");
+    await expect(newest).toContainText(`era ${before}`);
   });
 
   test("saída acima do saldo é barrada no formulário e nada é enviado", async ({ page }) => {
@@ -177,14 +205,19 @@ test.describe("modal de movimentação", () => {
     await delayMutations(page, counts);
 
     await openModal(page);
+    await chooseProduct(page, /Alicate universal/);
     await chooseType(page, "Saída");
-    await quantityInput(page).fill(String((await selectedBalance(page)) + 1));
+    await quantityInput(page).fill(String((await readoutBalance(page)) + 1));
+    await quantityInput(page).blur();
 
-    await expect(dialogOf(page).getByRole("alert")).toContainText("A saída supera o saldo disponível");
-    await expect(dialogOf(page).getByRole("button", { name: "Registrar movimentação" })).toBeDisabled();
-    await dialogOf(page).locator("form").evaluate((form: HTMLFormElement) => form.requestSubmit());
+    await expect(dialogOf(page).getByRole("alert")).toContainText("Saldo insuficiente");
+    const submit = dialogOf(page).getByRole("button", { name: "Confirmar saída" });
+    await expect(submit).toHaveAttribute("aria-disabled", "true");
+    await submit.click({ force: true });
+    await requestSubmitMany(dialogOf(page));
     await page.waitForTimeout(500);
     expect(counts.POST ?? 0).toBe(0);
+    await expect(dialogOf(page)).toHaveCount(1);
   });
 
   test("erro da API (simulado) mantém o modal aberto, permite tentar de novo e some ao reabrir", async ({
@@ -205,17 +238,18 @@ test.describe("modal de movimentação", () => {
     });
 
     await openModal(page);
+    await chooseProduct(page, /Arruela lisa/);
     await quantityInput(page).fill("2");
-    await dialogOf(page).getByRole("button", { name: "Registrar movimentação" }).click();
+    await dialogOf(page).getByRole("button", { name: "Confirmar entrada" }).click();
 
     await expect(dialogOf(page).getByRole("alert")).toContainText("Saldo insuficiente");
     await expect(dialogOf(page)).toHaveCount(1);
-    await expect(dialogOf(page).getByRole("button", { name: "Registrar movimentação" })).toBeEnabled();
-    await expect(page.getByRole("button", { name: "Fechar", exact: true })).toBeEnabled();
+    await expect(dialogOf(page).getByRole("button", { name: "Confirmar entrada" })).toBeEnabled();
+    await expect(dialogOf(page).getByRole("button", { name: "Fechar", exact: true })).toBeEnabled();
 
-    await dialogOf(page).getByRole("button", { name: "Registrar movimentação" }).click();
-    await expect(dialogOf(page)).toHaveCount(0);
-    await expect(page.getByText(/Entrada registrada\. Saldo final: \d+\./)).toBeVisible();
+    await dialogOf(page).getByRole("button", { name: "Confirmar entrada" }).click();
+    await expectNoModal(page);
+    await expect(page.getByText("Entrada registrada")).toBeVisible();
 
     await openModal(page);
     await expect(dialogOf(page).getByRole("alert")).toHaveCount(0);

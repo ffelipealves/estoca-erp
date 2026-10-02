@@ -3,97 +3,101 @@ import { expect, test, type Page } from "@playwright/test";
 import {
   CLOSE_ACTIONS,
   delayMutations as delayResourceMutations,
+  dialogOf,
+  expectFormsOnlyInModal,
+  expectNoModal,
+  hammer,
   loginAsAdmin,
+  requestSubmitMany,
 } from "./support/modal-helpers";
 
 const delayMutations = (page: Page, counts: Record<string, number>) =>
   delayResourceMutations(page, "categories", counts);
 
-const NAME_PLACEHOLDER = "Ex.: Bebidas";
-
-const cards = (page: Page) => page.locator("ul.gap-px > li");
-const dialogOf = (page: Page) => page.locator("dialog[open]");
-const cardNameOf = (page: Page, name: string) =>
-  cards(page).filter({ has: page.getByText(name, { exact: true }) });
+const rows = (page: Page) => page.locator("main ul.divide-y > li");
+const rowNamed = (page: Page, name: string) =>
+  rows(page).filter({ has: page.getByRole("heading", { name, exact: true }) });
+const newButton = (page: Page) => page.getByRole("button", { name: "Nova categoria" });
+const nameInput = (page: Page) => dialogOf(page).getByLabel("Nome");
 
 async function openCreateModal(page: Page) {
-  await page.getByRole("button", { name: "+ Nova categoria" }).click();
+  await newButton(page).click();
   await expect(dialogOf(page)).toHaveCount(1);
 }
 
 async function createCategory(page: Page, name: string) {
   await openCreateModal(page);
-  await dialogOf(page).getByPlaceholder(NAME_PLACEHOLDER).fill(name);
-  await dialogOf(page).getByRole("button", { name: "Cadastrar categoria" }).click();
-  await expect(dialogOf(page)).toHaveCount(0);
-  await expect(cardNameOf(page, name)).toHaveCount(1);
+  await nameInput(page).fill(name);
+  await dialogOf(page).getByRole("button", { name: "Criar categoria" }).click();
+  await expectNoModal(page);
+  await expect(rowNamed(page, name)).toHaveCount(1);
 }
 
 test.describe("modais de categoria", () => {
   test.beforeEach(async ({ page }) => {
-    await loginAsAdmin(page, "Categorias");
-    await expect(cards(page).first()).toBeVisible();
+    await loginAsAdmin(page, "/categorias");
+    await expect(rows(page).first()).toBeVisible();
   });
 
-  test("cadastrar abre em modal, com foco no nome e nada no topo da lista", async ({ page }) => {
+  test("cadastrar abre em modal, com foco no nome e nada fora dele", async ({ page }) => {
     await openCreateModal(page);
 
-    await expect(page.locator("dialog[open] form")).toHaveCount(1);
-    await expect(page.locator("form:not(dialog form)")).toHaveCount(0);
-    await expect(dialogOf(page).getByPlaceholder(NAME_PLACEHOLDER)).toBeFocused();
-    await expect(page.getByRole("button", { name: "Fechar formulário" })).toHaveCount(0);
+    await expectFormsOnlyInModal(page);
+    await expect(nameInput(page)).toBeFocused();
   });
 
   for (const [name, close] of CLOSE_ACTIONS) {
     test(`cadastro: fechar por ${name} descarta o rascunho e devolve o foco`, async ({ page }) => {
-      const total = await cards(page).count();
-      const newButton = page.getByRole("button", { name: "+ Nova categoria" });
+      const total = await rows(page).count();
 
       await openCreateModal(page);
-      await dialogOf(page).getByPlaceholder(NAME_PLACEHOLDER).fill("Rascunho");
+      await nameInput(page).fill("Rascunho");
+      await dialogOf(page).getByLabel("Descrição").fill("Rascunho da descrição");
       await close(page);
 
-      await expect(dialogOf(page)).toHaveCount(0);
-      await expect(newButton).toBeFocused();
-      await expect(cards(page)).toHaveCount(total);
+      await expectNoModal(page);
+      await expect(newButton(page)).toBeFocused();
+      await expect(rows(page)).toHaveCount(total);
 
       await openCreateModal(page);
-      await expect(dialogOf(page).getByPlaceholder(NAME_PLACEHOLDER)).toHaveValue("");
+      await expect(nameInput(page)).toHaveValue("");
+      await expect(dialogOf(page).getByLabel("Descrição")).toHaveValue("");
     });
 
     test(`edição: fechar por ${name} descarta o rascunho e devolve o foco`, async ({ page }) => {
-      const card = cards(page).first();
-      const originalName = (await card.locator("p.font-display").innerText()).trim();
-      const editButton = card.getByRole("button", { name: "Editar" });
+      const row = rows(page).first();
+      const originalName = (await row.getByRole("heading").innerText()).trim();
+      const editButton = row.getByRole("button", { name: "Editar" });
 
       await editButton.click();
-      await dialogOf(page).getByPlaceholder(NAME_PLACEHOLDER).fill("RASCUNHO NÃO SALVO");
+      await nameInput(page).fill("RASCUNHO NÃO SALVO");
       await close(page);
 
-      await expect(dialogOf(page)).toHaveCount(0);
+      await expectNoModal(page);
       await expect(editButton).toBeFocused();
-      await expect(card.locator("p.font-display")).toHaveText(originalName);
+      await expect(row.getByRole("heading")).toHaveText(originalName);
 
       await editButton.click();
-      await expect(dialogOf(page).getByPlaceholder(NAME_PLACEHOLDER)).toHaveValue(originalName);
+      await expect(nameInput(page)).toHaveValue(originalName);
     });
   }
 
-  test("editar abre em modal com o nome atual e o foco no campo", async ({ page }) => {
-    const card = cards(page).first();
-    const originalName = (await card.locator("p.font-display").innerText()).trim();
+  test("editar abre em modal com nome e descrição atuais e o foco no nome", async ({ page }) => {
+    const row = rows(page).first();
+    const originalName = (await row.getByRole("heading").innerText()).trim();
 
-    await card.getByRole("button", { name: "Editar" }).click();
+    await row.getByRole("button", { name: "Editar" }).click();
 
-    await expect(page.locator("form:not(dialog form)")).toHaveCount(0);
-    await expect(dialogOf(page).getByPlaceholder(NAME_PLACEHOLDER)).toHaveValue(originalName);
-    await expect(dialogOf(page).getByPlaceholder(NAME_PLACEHOLDER)).toBeFocused();
+    await expectFormsOnlyInModal(page);
+    await expect(nameInput(page)).toHaveValue(originalName);
+    await expect(dialogOf(page).getByLabel("Descrição")).not.toHaveValue("");
+    await expect(nameInput(page)).toBeFocused();
     await expect(dialogOf(page)).toContainText("Editar categoria");
   });
 
   test("selecionar texto e soltar o mouse fora não fecha o modal", async ({ page }) => {
     await openCreateModal(page);
-    const box = await dialogOf(page).getByPlaceholder(NAME_PLACEHOLDER).boundingBox();
+    const box = await nameInput(page).boundingBox();
     if (!box) throw new Error("campo Nome sem caixa de layout");
 
     await page.mouse.move(box.x + 20, box.y + box.height / 2);
@@ -109,42 +113,37 @@ test.describe("modais de categoria", () => {
   }) => {
     const counts: Record<string, number> = {};
     await delayMutations(page, counts);
-    const total = await cards(page).count();
-    const nameInput = () => dialogOf(page).getByPlaceholder(NAME_PLACEHOLDER);
+    const total = await rows(page).count();
 
     await openCreateModal(page);
-    await nameInput().fill("Categoria A");
-    const submit = dialogOf(page).getByRole("button", { name: /Cadastrar categoria|Cadastrando/ });
-    for (let i = 0; i < 15; i += 1) {
-      await submit.click({ force: true, noWaitAfter: true, timeout: 500 }).catch(() => {});
-    }
-    await expect(page.getByRole("button", { name: "Fechar", exact: true })).toBeDisabled();
+    await nameInput(page).fill("Categoria A");
+    const submit = dialogOf(page).getByRole("button", { name: /Criar categoria|Salvando/ });
+    await submit.click();
+    await expect(dialogOf(page).getByRole("button", { name: "Fechar", exact: true })).toBeDisabled();
     await page.keyboard.press("Escape");
     await page.mouse.click(3, 3);
     await expect(dialogOf(page)).toHaveCount(1);
+    // Insiste durante o envio e durante a saída do modal.
+    await hammer(submit);
 
-    await expect(dialogOf(page)).toHaveCount(0);
+    await expectNoModal(page);
     expect(counts.POST).toBe(1);
-    await expect(cards(page)).toHaveCount(total + 1);
-    await expect(page.getByText("Categoria A foi adicionada ao catálogo.")).toBeVisible();
-    await expect(page.getByRole("button", { name: "+ Nova categoria" })).toBeFocused();
+    await expect(rows(page)).toHaveCount(total + 1);
+    await expect(page.getByText("Categoria criada")).toBeVisible();
+    await expect(newButton(page)).toBeFocused();
 
     await openCreateModal(page);
-    await nameInput().fill("Categoria B");
-    await dialogOf(page)
-      .locator("form")
-      .evaluate((form: HTMLFormElement) => {
-        for (let i = 0; i < 5; i += 1) form.requestSubmit();
-      });
-    await expect(dialogOf(page)).toHaveCount(0);
+    await nameInput(page).fill("Categoria B");
+    await requestSubmitMany(dialogOf(page));
+    await expectNoModal(page);
     expect(counts.POST).toBe(2);
 
     await openCreateModal(page);
-    await nameInput().fill("Categoria C");
+    await nameInput(page).fill("Categoria C");
     for (let i = 0; i < 8; i += 1) await page.keyboard.press("Enter");
-    await expect(dialogOf(page)).toHaveCount(0);
+    await expectNoModal(page);
     expect(counts.POST).toBe(3);
-    await expect(cards(page)).toHaveCount(total + 3);
+    await expect(rows(page)).toHaveCount(total + 3);
   });
 
   test("edição: muitos cliques e envios simultâneos salvam uma só vez e atualizam a lista", async ({
@@ -152,51 +151,42 @@ test.describe("modais de categoria", () => {
   }) => {
     const counts: Record<string, number> = {};
     await delayMutations(page, counts);
-    const editFirst = async (name: string) => {
-      await cards(page).first().getByRole("button", { name: "Editar" }).click();
-      await dialogOf(page).getByPlaceholder(NAME_PLACEHOLDER).fill(name);
-    };
 
-    await editFirst("Renomeada A");
-    const save = dialogOf(page).getByRole("button", { name: /Salvar|Salvando/ });
-    for (let i = 0; i < 15; i += 1) {
-      await save.click({ force: true, noWaitAfter: true, timeout: 500 }).catch(() => {});
-    }
-    await expect(dialogOf(page)).toHaveCount(0);
+    await rows(page).first().getByRole("button", { name: "Editar" }).click();
+    await nameInput(page).fill("Renomeada A");
+    await hammer(dialogOf(page).getByRole("button", { name: /Salvar alterações|Salvando/ }));
+    await expectNoModal(page);
     expect(counts.PUT).toBe(1);
-    await expect(cardNameOf(page, "Renomeada A")).toHaveCount(1);
-    await expect(page.getByText("Renomeada A foi atualizada.")).toBeVisible();
+    await expect(rowNamed(page, "Renomeada A")).toHaveCount(1);
+    await expect(page.getByText("Categoria atualizada")).toBeVisible();
 
-    await cardNameOf(page, "Renomeada A").getByRole("button", { name: "Editar" }).click();
-    await dialogOf(page).getByPlaceholder(NAME_PLACEHOLDER).fill("Renomeada B");
-    await dialogOf(page)
-      .locator("form")
-      .evaluate((form: HTMLFormElement) => {
-        for (let i = 0; i < 5; i += 1) form.requestSubmit();
-      });
-    await expect(dialogOf(page)).toHaveCount(0);
+    await rowNamed(page, "Renomeada A").getByRole("button", { name: "Editar" }).click();
+    await nameInput(page).fill("Renomeada B");
+    await requestSubmitMany(dialogOf(page));
+    await expectNoModal(page);
     expect(counts.PUT).toBe(2);
+    await expect(rowNamed(page, "Renomeada B")).toHaveCount(1);
   });
 
   test("nome duplicado mantém o modal aberto, permite corrigir e o erro some ao reabrir", async ({
     page,
   }) => {
-    const existingName = (await cards(page).first().locator("p.font-display").innerText()).trim();
-    const total = await cards(page).count();
+    const existingName = (await rows(page).first().getByRole("heading").innerText()).trim();
+    const total = await rows(page).count();
 
     await openCreateModal(page);
-    await dialogOf(page).getByPlaceholder(NAME_PLACEHOLDER).fill(existingName);
-    await dialogOf(page).getByRole("button", { name: "Cadastrar categoria" }).click();
+    await nameInput(page).fill(existingName);
+    await dialogOf(page).getByRole("button", { name: "Criar categoria" }).click();
 
-    await expect(dialogOf(page).getByRole("alert")).toBeVisible();
-    await expect(dialogOf(page)).toHaveCount(1);
-    await expect(cards(page)).toHaveCount(total);
-    await expect(dialogOf(page).getByRole("button", { name: "Cadastrar categoria" })).toBeEnabled();
+    await expect(dialogOf(page).getByRole("alert")).toContainText("Já existe uma categoria com este nome");
+    await expect(nameInput(page)).toBeFocused();
+    await expect(rows(page)).toHaveCount(total);
+    await expect(dialogOf(page).getByRole("button", { name: "Criar categoria" })).toBeEnabled();
 
-    await dialogOf(page).getByPlaceholder(NAME_PLACEHOLDER).fill("Nome Corrigido");
-    await dialogOf(page).getByRole("button", { name: "Cadastrar categoria" }).click();
-    await expect(dialogOf(page)).toHaveCount(0);
-    await expect(cards(page)).toHaveCount(total + 1);
+    await nameInput(page).fill("Nome Corrigido");
+    await dialogOf(page).getByRole("button", { name: "Criar categoria" }).click();
+    await expectNoModal(page);
+    await expect(rows(page)).toHaveCount(total + 1);
 
     await openCreateModal(page);
     await expect(dialogOf(page).getByRole("alert")).toHaveCount(0);
@@ -209,37 +199,45 @@ test.describe("modais de categoria", () => {
     const counts: Record<string, number> = {};
     await delayMutations(page, counts);
 
-    const total = await cards(page).count();
-    const deleteButton = cardNameOf(page, "Temporária").getByRole("button", { name: "Excluir" });
+    const total = await rows(page).count();
+    const deleteButton = rowNamed(page, "Temporária").getByRole("button", { name: "Excluir" });
 
     await deleteButton.click();
     await expect(dialogOf(page)).toContainText("Excluir Temporária?");
-    await expect(page.getByRole("button", { name: "Cancelar" })).toBeFocused();
-    await page.getByRole("button", { name: "Cancelar" }).click();
-    await expect(dialogOf(page)).toHaveCount(0);
+    await expect(dialogOf(page).getByRole("button", { name: "Cancelar" })).toBeFocused();
+    await dialogOf(page).getByRole("button", { name: "Cancelar" }).click();
+    await expectNoModal(page);
     await expect(deleteButton).toBeFocused();
 
     await deleteButton.click();
-    await page.getByRole("button", { name: "Fechar", exact: true }).click();
-    await expect(dialogOf(page)).toHaveCount(0);
-    await expect(cards(page)).toHaveCount(total);
+    await dialogOf(page).getByRole("button", { name: "Fechar", exact: true }).click();
+    await expectNoModal(page);
+    await expect(rows(page)).toHaveCount(total);
 
     await deleteButton.click();
-    await page.getByRole("button", { name: "Excluir categoria" }).dblclick();
-    await expect(page.getByRole("button", { name: "Excluindo..." })).toBeDisabled();
-    await expect(page.getByRole("button", { name: "Fechar", exact: true })).toBeDisabled();
+    await dialogOf(page).getByRole("button", { name: "Excluir categoria" }).dblclick();
+    await expect(dialogOf(page).getByRole("button", { name: "Excluindo…" })).toBeDisabled();
+    await expect(dialogOf(page).getByRole("button", { name: "Fechar", exact: true })).toBeDisabled();
     await page.keyboard.press("Escape");
     await page.mouse.click(3, 3);
     await expect(dialogOf(page)).toHaveCount(1);
 
-    await expect(dialogOf(page)).toHaveCount(0);
+    await expectNoModal(page);
     expect(counts.DELETE).toBe(1);
-    await expect(cards(page)).toHaveCount(total - 1);
-    await expect(page.getByText("Temporária foi excluída do catálogo.")).toBeVisible();
+    await expect(rows(page)).toHaveCount(total - 1);
+    await expect(page.getByText("Categoria excluída")).toBeVisible();
   });
 
-  test("categoria com produtos não oferece exclusão", async ({ page }) => {
-    await expect(page.getByText("Em uso · exclusão bloqueada").first()).toBeVisible();
-    await expect(page.getByRole("button", { name: "Excluir" })).toHaveCount(0);
+  test("categoria com produtos não oferece exclusão e explica como liberar", async ({ page }) => {
+    const row = rows(page).first();
+    const name = (await row.getByRole("heading").innerText()).trim();
+
+    await row.getByRole("button", { name: "Excluir" }).click();
+
+    await expect(dialogOf(page)).toContainText(`${name} ainda tem produtos`);
+    await expect(dialogOf(page).getByRole("button", { name: "Excluir categoria" })).toHaveCount(0);
+    await dialogOf(page).getByRole("link", { name: "Ver produtos da categoria" }).click();
+    await expect(page).toHaveURL(/\/produtos\?categoria=/);
+    await expect(page.locator("table tbody tr")).toHaveCount(4);
   });
 });
