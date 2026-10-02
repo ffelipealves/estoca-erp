@@ -48,14 +48,30 @@ function DialogContent({
   onEscapeKeyDown,
   onPointerDownOutside,
   onInteractOutside,
+  onOpenAutoFocus,
+  onCloseAutoFocus,
   ...props
 }: React.ComponentProps<typeof DialogPrimitive.Content> & { busy?: boolean }) {
+  // Radix only returns focus to a DialogTrigger. These dialogs open from state,
+  // so remember whoever had focus and hand it back on close.
+  const returnFocusTo = React.useRef<HTMLElement | null>(null)
   return (
     <DialogPortal>
       <DialogOverlay />
       <DialogPrimitive.Content
         data-slot="dialog-content"
         aria-busy={busy || undefined}
+        onOpenAutoFocus={(e) => {
+          const active = document.activeElement
+          returnFocusTo.current = active instanceof HTMLElement && active !== document.body ? active : null
+          onOpenAutoFocus?.(e)
+        }}
+        onCloseAutoFocus={(e) => {
+          onCloseAutoFocus?.(e)
+          if (e.defaultPrevented) return
+          e.preventDefault()
+          if (returnFocusTo.current?.isConnected) returnFocusTo.current.focus()
+        }}
         onEscapeKeyDown={(e) => {
           if (busy) e.preventDefault()
           onEscapeKeyDown?.(e)

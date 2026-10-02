@@ -103,7 +103,8 @@ function AdminContent() {
   const { sandbox, categories, products } = useEstoca()
   const movementCount = useMovementCount()
   const now = useNow()
-  const [resetOpen, setResetOpen] = React.useState(false)
+  // A fresh key per open: each confirmation starts unlocked.
+  const [reset, setReset] = React.useState({ open: false, key: 0 })
 
   return (
     <>
@@ -221,14 +222,19 @@ function AdminContent() {
               ID e o limite de {formatDuration(maxAgeMs(sandbox))} desde a criação continuam os mesmos.
             </p>
           </div>
-          <Button variant="destructive" className="shrink-0 self-start sm:self-center" onClick={() => setResetOpen(true)}>
+          <Button variant="destructive" className="shrink-0 self-start sm:self-center" onClick={() => setReset((r) => ({ open: true, key: r.key + 1 }))}>
             <ArrowCounterClockwiseIcon weight="bold" />
             Resetar sandbox
           </Button>
         </section>
       </div>
 
-      <ResetDialog open={resetOpen} onOpenChange={setResetOpen} movementCount={movementCount} />
+      <ResetDialog
+        key={reset.key}
+        open={reset.open}
+        onOpenChange={(open) => setReset((r) => ({ ...r, open }))}
+        movementCount={movementCount}
+      />
     </>
   )
 }
@@ -304,12 +310,15 @@ function ResetDialog({
     setPending(true)
     setError(null)
     const result = await resetSandbox()
-    inFlight.current = false
-    setPending(false)
     if (!result.ok) {
+      inFlight.current = false
+      setPending(false)
       setError(result.message)
       return
     }
+    // Success keeps the dialog locked while the dialog fades out: a click in
+    // that moment must not send it again. The next open starts a fresh dialog.
+
     onOpenChange(false)
     toast.success("Sandbox resetada", {
       description: `Catálogo inicial restaurado: ${pluralize(result.value.categories, "categoria", "categorias")} e ${pluralize(result.value.products, "produto", "produtos")}.`,

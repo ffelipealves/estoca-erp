@@ -51,8 +51,8 @@ export function CategoryDialog({
     setPending(true)
     const draft = { name, description }
     const result = editing ? await updateCategory(category.id, draft) : await createCategory(draft)
-    inFlight.current = false
     if (!result.ok) {
+      inFlight.current = false
       // Render first: the fields are disabled while sending and cannot take focus.
       flushSync(() => {
         setPending(false)
@@ -61,7 +61,8 @@ export function CategoryDialog({
       document.getElementById("cat-name")?.focus()
       return
     }
-    setPending(false)
+    // Success keeps the form locked while the dialog fades out: a click in
+    // that moment must not send it again. The next open starts a fresh form.
     toast.success(editing ? "Categoria atualizada" : "Categoria criada", { description: name.trim() })
     onOpenChange(false)
   }
@@ -145,12 +146,15 @@ export function DeleteCategoryDialog({
     inFlight.current = true
     setPending(true)
     const result = await deleteCategory(shown.id)
-    inFlight.current = false
-    setPending(false)
     if (!result.ok) {
+      inFlight.current = false
+      setPending(false)
       setServerError(result.message)
       return
     }
+    // Success keeps the dialog locked while the dialog fades out: a click in
+    // that moment must not send it again. The next open starts a fresh dialog.
+
     toast.success("Categoria excluída", { description: shown.name })
     onOpenChange(false)
   }

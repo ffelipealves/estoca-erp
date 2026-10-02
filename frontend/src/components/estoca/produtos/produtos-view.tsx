@@ -53,7 +53,12 @@ export function ProdutosView() {
     product: null,
     key: 0,
   })
-  const [toDelete, setToDelete] = React.useState<Product | null>(null)
+  // A fresh key per open: each confirmation starts unlocked and unchecked.
+  const [deleting, setDeleting] = React.useState<{ product: Product | null; key: number }>({
+    product: null,
+    key: 0,
+  })
+  const openDelete = (product: Product) => setDeleting((d) => ({ product, key: d.key + 1 }))
 
   const q = params.get("q") ?? ""
   const categoria = params.get("categoria") ?? ALL
@@ -245,13 +250,13 @@ export function ProdutosView() {
               onSort={setSort}
               flashProductId={flashProductId}
               onEdit={openEdit}
-              onDelete={setToDelete}
+              onDelete={openDelete}
             />
             <ProductList
               rows={rows}
               categoriesById={categoriesById}
               onEdit={openEdit}
-              onDelete={setToDelete}
+              onDelete={openDelete}
               flashProductId={flashProductId}
             />
           </>
@@ -264,7 +269,11 @@ export function ProdutosView() {
         product={editor.product}
         onOpenChange={(open) => setEditor((e) => ({ ...e, open }))}
       />
-      <DeleteProductDialog product={toDelete} onOpenChange={(open) => !open && setToDelete(null)} />
+      <DeleteProductDialog
+        key={deleting.key}
+        product={deleting.product}
+        onOpenChange={(open) => !open && setDeleting((d) => ({ ...d, product: null }))}
+      />
     </>
   )
 }

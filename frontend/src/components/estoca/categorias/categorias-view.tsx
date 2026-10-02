@@ -27,7 +27,11 @@ export function CategoriasView() {
     category: null,
     key: 0,
   })
-  const [toDelete, setToDelete] = React.useState<Category | null>(null)
+  // A fresh key per open: each confirmation starts unlocked.
+  const [deleting, setDeleting] = React.useState<{ category: Category | null; key: number }>({
+    category: null,
+    key: 0,
+  })
   const openCreate = () => setEditor((e) => ({ open: true, category: null, key: e.key + 1 }))
 
   return (
@@ -129,7 +133,7 @@ export function CategoriasView() {
                     />
                     <PermissionButton
                       permission="gerir-categorias"
-                      onClick={() => setToDelete(row.category)}
+                      onClick={() => setDeleting((d) => ({ category: row.category, key: d.key + 1 }))}
                       icon={<TrashIcon weight="bold" />}
                       label="Excluir"
                       size="sm"
@@ -148,7 +152,11 @@ export function CategoriasView() {
         category={editor.category}
         onOpenChange={(open) => setEditor((e) => ({ ...e, open }))}
       />
-      <DeleteCategoryDialog category={toDelete} onOpenChange={(open) => !open && setToDelete(null)} />
+      <DeleteCategoryDialog
+        key={deleting.key}
+        category={deleting.category}
+        onOpenChange={(open) => !open && setDeleting((d) => ({ ...d, category: null }))}
+      />
     </>
   )
 }

@@ -93,12 +93,15 @@ export function MovementDialog({
     setPending(true)
     setServerError(null)
     const result = await registerMovement({ productId, type, quantity, note })
-    inFlight.current = false
-    setPending(false)
     if (!result.ok) {
+      inFlight.current = false
+      setPending(false)
       setServerError(result.message)
       return
     }
+    // Success keeps the form locked while the dialog fades out: a click in
+    // that moment must not send it again. The next open starts a fresh form.
+
     toast.success(meta.done, {
       description: `${product!.name}: saldo agora é ${formatInt(result.value.resultingBalance)}.`,
     })

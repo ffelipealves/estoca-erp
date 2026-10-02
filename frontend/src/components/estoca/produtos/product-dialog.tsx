@@ -93,8 +93,8 @@ export function ProductDialog({
     const result = editing
       ? await updateProduct(product.id, draft)
       : await createProduct({ ...draft, initialQuantity: Number(initial) })
-    inFlight.current = false
     if (!result.ok) {
+      inFlight.current = false
       // A field the API rejected (a taken SKU) gets the message in place;
       // anything else, like the 50-product cap, is said once for the form.
       // Render first: the fields are disabled while sending and cannot take focus.
@@ -106,7 +106,8 @@ export function ProductDialog({
       if (result.field) document.getElementById(`prd-${result.field}`)?.focus()
       return
     }
-    setPending(false)
+    // Success keeps the form locked while the dialog fades out: a click in
+    // that moment must not send it again. The next open starts a fresh form.
     toast.success(editing ? "Produto atualizado" : "Produto cadastrado", { description: draft.name })
     onOpenChange(false)
   }

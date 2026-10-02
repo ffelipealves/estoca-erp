@@ -56,12 +56,15 @@ export function DeleteProductDialog({
     setPending(true)
     setError(null)
     const result = await deleteProduct(shown.id)
-    inFlight.current = false
-    setPending(false)
     if (!result.ok) {
+      inFlight.current = false
+      setPending(false)
       setError(result.message)
       return
     }
+    // Success keeps the dialog locked while the dialog fades out: a click in
+    // that moment must not send it again. The next open starts a fresh dialog.
+
     toast.success("Produto excluído", {
       description:
         history === null

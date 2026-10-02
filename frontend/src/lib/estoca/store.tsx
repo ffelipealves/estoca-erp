@@ -189,6 +189,10 @@ export function EstocaProvider({ children }: { children: React.ReactNode }) {
   const clockOffset = React.useRef(0)
   const catalogRequest = React.useRef(0)
   const verifyingAuth = React.useRef(false)
+  const bootStatus = React.useRef<BootStatus>("booting")
+  React.useEffect(() => {
+    bootStatus.current = boot.status
+  }, [boot.status])
 
   const loadCatalog = React.useCallback(async () => {
     const request = ++catalogRequest.current
@@ -288,6 +292,8 @@ export function EstocaProvider({ children }: { children: React.ReactNode }) {
         onUnauthorized: (_error, path) => {
           // A wrong password is a form error, not a lost session.
           if (path === "/api/v1/auth/login") return
+          // While booting, a 401 is a boot failure: the boot screen offers the retry.
+          if (bootStatus.current !== "ready") return
           void verifyAuth()
         },
       }),
