@@ -1,4 +1,6 @@
+import json
 from datetime import datetime, timedelta
+from typing import Any
 from uuid import UUID
 
 from httpx import ASGITransport, AsyncClient
@@ -119,6 +121,49 @@ async def test_session_info_exposes_the_expiry_rule() -> None:
                 await db.execute(
                     delete(Session).where(Session.id.in_(created_session_ids))
                 )
+                await db.commit()
+
+
+async def test_bootstrap_commits_before_the_response_is_sent() -> None:
+    """O frontend encadeia /sessions/me assim que recebe o bootstrap. Se o
+    commit viesse depois da resposta, a chamada seguinte não veria a sessão."""
+    committed: list[bool] = []
+    session_ids: list[UUID] = []
+
+    async def receive() -> dict[str, Any]:
+        return {"type": "http.request", "body": b"", "more_body": False}
+
+    async def send(message: dict[str, Any]) -> None:
+        if message["type"] != "http.response.body" or not message.get("body"):
+            return
+        session_id = UUID(json.loads(message["body"])["session_id"])
+        session_ids.append(session_id)
+        # Outra conexão, como a próxima requisição do cliente.
+        async with async_session_factory() as db:
+            committed.append(await db.get(Session, session_id) is not None)
+
+    scope = {
+        "type": "http",
+        "asgi": {"version": "3.0"},
+        "http_version": "1.1",
+        "method": "POST",
+        "scheme": "http",
+        "path": "/api/v1/sessions/bootstrap",
+        "raw_path": b"/api/v1/sessions/bootstrap",
+        "query_string": b"",
+        "root_path": "",
+        "headers": [(b"host", b"test")],
+        "client": ("127.0.0.1", 50000),
+        "server": ("test", 80),
+    }
+
+    try:
+        await app(scope, receive, send)
+        assert committed == [True]
+    finally:
+        if session_ids:
+            async with async_session_factory() as db:
+                await db.execute(delete(Session).where(Session.id.in_(session_ids)))
                 await db.commit()
 
 

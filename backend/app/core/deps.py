@@ -17,7 +17,11 @@ from app.models.session import Session
 from app.repositories.demo_user_repository import DemoUserRepository
 from app.services.session_service import SessionService
 
-DbSession = Annotated[AsyncSession, Depends(get_db)]
+# Escopo "function": o commit de get_db acontece antes de a resposta sair. No
+# escopo padrão ("request") ele viria depois, e o cliente que encadeia a próxima
+# chamada assim que recebe a resposta (bootstrap -> /sessions/me, registrar ->
+# reler o histórico) leria o estado de antes.
+DbSession = Annotated[AsyncSession, Depends(get_db, scope="function")]
 
 
 async def resolve_session_id(
